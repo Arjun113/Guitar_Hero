@@ -1,8 +1,6 @@
 import * as Tone from "tone";
 import { SampleLibrary } from "./tonejs-instruments";
 
-const midiMaxValue = 127;
-
 const samples = SampleLibrary.load({
     instruments: SampleLibrary.list,
     baseUrl: "samples/",
@@ -20,11 +18,11 @@ function play_instrument() {
     // Example 1: Playing a note with the "piano" sample
     // This triggers the attack of a note in the "piano" sampler, converting
     // MIDI note 36 to a frequency (C2) and playing it at a quarter of the
-    // maximum MIDI velocity.
+    // maximum velocity.
     samples["piano"].triggerAttack(
         Tone.Frequency(36, "midi").toNote(), // Convert MIDI note to frequency
         undefined, // Use default time for note onset
-        midiMaxValue / 4, // Set velocity to quarter of the max
+        0.25, // Set velocity to quarter of the maximum velocity
     );
 
     // After 1 second, stop the note (trigger release)
@@ -41,6 +39,6 @@ function play_instrument() {
         Tone.Frequency(36, "midi").toNote(), // Convert MIDI note to frequency
         1, // Duration of the note in seconds
         undefined, // Use default time for note onset
-        midiMaxValue / 4, // Set velocity to quarter of the max
+        0.25, // Set velocity to quarter of the maximum velocity
     );
 }
