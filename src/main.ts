@@ -14,10 +14,12 @@
 
 import "./style.css";
 
-import { fromEvent, interval, merge } from "rxjs";
+import { fromEvent, interval, merge, timer } from "rxjs";
 import { map, filter, scan } from "rxjs/operators";
 import * as Tone from "tone";
 import { SampleLibrary } from "./tonejs-instruments";
+import { Key, MusicNote, NoteBallAssociation, State } from "./types.ts";
+export { Note, Viewport, createSvgElement }
 
 /** Constants */
 
@@ -34,24 +36,16 @@ const Constants = {
 const Note = {
     RADIUS: 0.07 * Viewport.CANVAS_WIDTH,
     TAIL_WIDTH: 10,
-};
+    BOTTOM_INDICATOR_Y:  0
+} as const;
 
-/** User input */
-
-type Key = "KeyH" | "KeyJ" | "KeyK" | "KeyL";
-
-type Event = "keydown" | "keyup" | "keypress";
-
-/** Utility functions */
-
-/** State processing */
-
-type State = Readonly<{
-    gameEnd: boolean;
-}>;
 
 const initialState: State = {
     gameEnd: false,
+    noteBallAssociations: [] as NoteBallAssociation[],
+    multiplier: 1,
+    score: 0,
+    highscore: 0
 } as const;
 
 /**
@@ -101,11 +95,19 @@ const createSvgElement = (
     return elem;
 };
 
+const PlayNote = (note: MusicNote, samples: {[p: string] : Tone.Sampler}) => {
+    const notePitch = Tone.Frequency(note.pitch, "midi").toNote();
+    const noteTime = (note.end - note.start) >= 1 ? undefined : (note.end - note.start);
+    samples[note.instrument].triggerAttack(
+        notePitch, noteTime, (note.velocity / 127)
+    )
+}
+
 /**
  * This is the function called on page load. Your main game loop
  * should be called here.
  */
-export function main(csv_contents: string) {
+export function main(csv_contents: string, samples: {[p: string] : Tone.Sampler}) {
     // Canvas elements
     const svg = document.querySelector("#svgCanvas") as SVGGraphicsElement &
         HTMLElement;
@@ -143,7 +145,7 @@ export function main(csv_contents: string) {
      *
      * @param s Current state
      */
-    const render = (s: State) => {
+    const initRender = (s: State) => {
         // Add blocks to the main grid canvas
         const greenCircle = createSvgElement(svg.namespaceURI, "circle", {
             r: `${Note.RADIUS}`,
@@ -184,9 +186,9 @@ export function main(csv_contents: string) {
     };
 
     const source$ = tick$
-        .pipe(scan((s: State) => ({ gameEnd: false }), initialState))
+        .pipe(scan((s: State) => ({...s, gameEnd: false }), initialState))
         .subscribe((s: State) => {
-            render(s);
+            initRender(s);
 
             if (s.gameEnd) {
                 show(gameover);
@@ -194,7 +196,20 @@ export function main(csv_contents: string) {
                 hide(gameover);
             }
         });
-}
+
+    const lines = csv_contents.split("\n");
+    const noteSeries = lines.map((line) => ({userPlayed: Boolean(line.split(',')[0]),
+                                                                                instrument: line.split(',')[1],
+                                                                                velocity: Number(line.split(',')[2]),
+                                                                                pitch: Number(line.split(',')[3]),
+                                                                                start: Number(line.split(',')[4]),
+                                                                                end: Number(line.split(',')[5])}) as MusicNote)
+
+    noteSeries.forEach((note) => {
+      if (!note.userPlayed) {
+          timer(note.start * 1000).subscribe(_ => PlayNote(note, samples));
+      }
+})
 
 // The following simply runs your main function on window load.  Make sure to leave it in place.
 // You should not need to change this, beware if you are.
@@ -213,11 +228,12 @@ if (typeof window !== "undefined") {
         baseUrl: "samples/",
     });
 
+
     const start_game = (contents: string) => {
         document.body.addEventListener(
             "mousedown",
             function () {
-                main(contents);
+                main(contents, samples);
             },
             { once: true },
         );
@@ -237,5 +253,6 @@ if (typeof window !== "undefined") {
                     console.error("Error fetching the CSV file:", error),
                 );
         }
-    });
+    })}
 }
+
