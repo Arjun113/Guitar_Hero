@@ -1,6 +1,35 @@
 // Canvas elements
 import { Viewport } from "./main.ts";
-import { State } from "./types.ts";
+import { State, Body } from "./types.ts";
+
+/**
+ * Displays a SVG element on the canvas. Brings to foreground.
+ * @param elem SVG element to display
+ */
+const show = (elem: SVGGraphicsElement) => {
+    elem.setAttribute("visibility", "visible");
+    elem.parentNode!.appendChild(elem);
+};
+
+/**
+ * Hides a SVG element on the canvas.
+ * @param elem SVG element to hide
+ */
+const hide = (elem: SVGGraphicsElement) =>
+    elem.setAttribute("visibility", "hidden");
+
+const updateBodyView = (rootSVG: HTMLElement) => (b: Body) => {
+    function createBodyView() {
+        const v = document.createElementNS(rootSVG.namespaceURI, "ellipse");
+        attr(v, { id: b.id, rx: b.radius, ry: b.radius });
+        v.classList.add(b.viewType)
+        rootSVG.appendChild(v)
+        return v;
+    }
+    const v = document.getElementById(b.id) || createBodyView();
+    attr(v, { cx: b.pos.x, cy: b.pos.y });
+};
+
 
 function updateView (onFinish: () => void) {
     return function (s: State) {

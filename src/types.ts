@@ -1,4 +1,5 @@
-export type {Key, Event, MusicNote, NoteBallAssociation, State}
+export type {Key, Event, MusicNote, NoteBallAssociation, State, ViewType, ObjectId, Circle, Body}
+export type {Action}
 
 /** User input */
 
@@ -23,10 +24,14 @@ type NoteBallAssociation = Readonly<{
 
 type State = Readonly<{
     gameEnd: boolean;
-    noteBallAssociations: NoteBallAssociation[],
+    total_notes_user: number,
     multiplier: number,
     score: number,
-    highscore: number
+    highscore: number,
+    time: number,
+    notesToPlay: Body[],
+    notesAuto: MusicNote[],
+    expiredNotes: Body[]
 }>;
 
 type Circle = Readonly<{ pos: Vec, radius: number }>
@@ -41,7 +46,8 @@ type ObjectId = Readonly<{ id: string, createTime: number }>
  */
 type Body = Circle & ObjectId & Readonly<{
     viewType: ViewType,
-    vel: Vec
+    vel: Vec,
+    note: MusicNote
 }>
 
 type ViewType = "ShortNote" | "LongNote"

@@ -19,6 +19,7 @@ import { map, filter, scan } from "rxjs/operators";
 import * as Tone from "tone";
 import { SampleLibrary } from "./tonejs-instruments";
 import { Key, MusicNote, NoteBallAssociation, State } from "./types.ts";
+import { initialState } from "./state.ts";
 export { Note, Viewport, createSvgElement }
 
 /** Constants */
@@ -35,18 +36,9 @@ const Constants = {
 
 const Note = {
     RADIUS: 0.07 * Viewport.CANVAS_WIDTH,
-    TAIL_WIDTH: 10,
-    BOTTOM_INDICATOR_Y:  0
+    TAIL_WIDTH: 10
 } as const;
 
-
-const initialState: State = {
-    gameEnd: false,
-    noteBallAssociations: [] as NoteBallAssociation[],
-    multiplier: 1,
-    score: 0,
-    highscore: 0
-} as const;
 
 /**
  * Updates the state by proceeding with one time step.
@@ -205,11 +197,8 @@ export function main(csv_contents: string, samples: {[p: string] : Tone.Sampler}
                                                                                 start: Number(line.split(',')[4]),
                                                                                 end: Number(line.split(',')[5])}) as MusicNote)
 
-    noteSeries.forEach((note) => {
-      if (!note.userPlayed) {
-          timer(note.start * 1000).subscribe(_ => PlayNote(note, samples));
-      }
-})
+
+}
 
 // The following simply runs your main function on window load.  Make sure to leave it in place.
 // You should not need to change this, beware if you are.
@@ -253,6 +242,6 @@ if (typeof window !== "undefined") {
                     console.error("Error fetching the CSV file:", error),
                 );
         }
-    })}
+    })
 }
 

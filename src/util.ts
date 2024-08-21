@@ -32,7 +32,7 @@ class Vec {
     add = (b: Vec) => new Vec(this.x + b.x, this.y + b.y)
     sub = (b: Vec) => this.add(b.scale(-1))
     scale = (s: number) => new Vec(this.x * s, this.y * s)
-    Zero = new Vec()
+    static Zero = new Vec()
 }
 
 const
