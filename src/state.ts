@@ -1,5 +1,6 @@
 import { Circle, NoteBallAssociation, ObjectId, State, ViewType, Body, Action, MusicNote, Key } from "./types.ts";
-import { Note } from "tone/build/esm/core/type/NoteUnits";
+import { calcNoteStartingPos, Vec } from "./util.ts";
+import { Viewport } from "./main.ts";
 export {initialState}
 
 const initialState: State = {
@@ -33,32 +34,44 @@ class Tick implements Action {
     constructor (public readonly timeElapsed: number) {}
 
     apply = (s: State): State => ({
-        ...s
+        ...s // Add mods here
     })
 }
 
 class addUserNote implements Action{
     constructor(public readonly note: MusicNote) {}
 
-    apply = (s: State) => ({
-       ...s // Add modifications here
-    })
+    apply (s: State): State {
+       if (this.note.end - this.note.start < 1) {
+           return {...s, notesToPlay: s.notesToPlay.concat(
+               createSmallNote({id: s.total_notes_user.toString(), createTime: s.time})
+               (calcNoteStartingPos(this.note))(this.note)(new Vec(0, Viewport.CANVAS_HEIGHT / 2))
+               ),
+                total_notes_user: s.total_notes_user + 1}
+       }
+       else {
+           return {...s, notesToPlay: s.notesToPlay.concat(
+                   createLongNote({id: s.total_notes_user.toString(), createTime: s.time})
+                   (calcNoteStartingPos(this.note))(this.note)(new Vec(0, Viewport.CANVAS_HEIGHT / 2))
+               ), total_notes_user: s.total_notes_user + 1}
+       }
+    }
 }
 
 class addSelfNote implements Action {
     constructor(public readonly note: MusicNote) {}
 
     apply = (s: State) => ({
-        ...s // Add modifications here
+        ...s, notesAuto: s.notesAuto.concat(this.note)
     })
 }
 
 class pressNoteKey implements Action {
-    constructor (public readonly key: Key) {}
+    constructor (public readonly keyColour: string) {}
 
-    apply = (s: State) => ({
-        ...s // Add modifications here
-    })
+    apply = (s: State) => {
+
+    }
 }
 
 const reduceState = (action: Action, state: State) => action.apply(state);

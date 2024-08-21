@@ -1,3 +1,7 @@
+import { Circle, ColourPos, MusicNote } from "./types.ts";
+import { Note, Viewport } from "./main.ts";
+export {Vec, attr, calcNoteStartingPos}
+
 /**
  * A random number generator which provides two pure functions
  * `hash` and `scaleToRange`.  Call `hash` repeatedly to generate the
@@ -74,4 +78,25 @@ const
  */
 function isNotNullOrUndefined<T extends object>(input: null | undefined | T): input is T {
     return input != null;
+}
+
+
+const calcNoteStartingPos = (note: MusicNote): Circle => {
+    function calcPercentage(note: MusicNote): ColourPos {
+        if (note.pitch < 32 && note.pitch > 0) {
+            return ["red", 20];
+        }
+        else if (note.pitch < 64 && note.pitch >= 32) {
+            return ["green", 40];
+        }
+        else if (note.pitch < 96 && note.pitch >= 64) {
+            return ["blue", 60];
+        }
+        else {
+            return ["yellow", 80];
+        }
+    }
+
+    const colourPos = calcPercentage(note);
+    return {pos: new Vec(Viewport.CANVAS_WIDTH * colourPos[1], 0), radius: Note.RADIUS, colour: colourPos[0]};
 }

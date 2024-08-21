@@ -1,6 +1,7 @@
 // Canvas elements
 import { Viewport } from "./main.ts";
 import { State, Body } from "./types.ts";
+import { attr } from "./util.ts";
 
 /**
  * Displays a SVG element on the canvas. Brings to foreground.
@@ -65,7 +66,11 @@ function updateView (onFinish: () => void) {
             highScoreText.innerText = s.highscore.toString();
         }
 
+        // Add handling code here
 
+        if(s.gameEnd) {
+            show(gameover);
+        }
 
     }
 }

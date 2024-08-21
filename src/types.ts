@@ -1,4 +1,6 @@
-export type {Key, Event, MusicNote, NoteBallAssociation, State, ViewType, ObjectId, Circle, Body}
+import { Vec } from "./util.ts";
+
+export type {Key, Event, MusicNote, NoteBallAssociation, State, ViewType, ObjectId, Circle, Body, ColourPos}
 export type {Action}
 
 /** User input */
@@ -34,7 +36,7 @@ type State = Readonly<{
     expiredNotes: Body[]
 }>;
 
-type Circle = Readonly<{ pos: Vec, radius: number }>
+type Circle = Readonly<{ pos: Vec, radius: number, colour: string }>
 
 /**
  * ObjectIds help us identify objects and manage objects which timeout (such as bullets)
@@ -51,6 +53,8 @@ type Body = Circle & ObjectId & Readonly<{
 }>
 
 type ViewType = "ShortNote" | "LongNote"
+
+type ColourPos = [colour: string, yPositionPercentage: number]
 
 /**
  * Actions modify state
