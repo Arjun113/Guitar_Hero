@@ -1,7 +1,7 @@
 // Canvas elements
 import { Viewport } from "./main.ts";
 import { State, Body } from "./types.ts";
-import { attr } from "./util.ts";
+import { attr, isNotNullOrUndefined } from "./util.ts";
 
 /**
  * Displays a SVG element on the canvas. Brings to foreground.
@@ -66,7 +66,19 @@ function updateView (onFinish: () => void) {
             highScoreText.innerText = s.highscore.toString();
         }
 
-        // Add handling code here
+        s.notesToPlay.forEach(updateBodyView(svg))
+        s.noteStatus.forEach((note) => updateBodyView(svg)(note.note))
+
+        s.expiredNotes.map(o => document.getElementById(o.id))
+            .filter(isNotNullOrUndefined)
+            .forEach(v => {
+                try {
+                    svg.removeChild(v)
+                } catch (e) {
+                    // Note may have expiring clashes.
+                    console.log("Already removed: " + v.id)
+                }
+            })
 
         if(s.gameEnd) {
             show(gameover);
