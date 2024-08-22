@@ -1,6 +1,6 @@
 import { Circle, ColourPos, MusicNote } from "./types.ts";
 import { Note, Viewport } from "./main.ts";
-export {Vec, attr, calcNoteStartingPos}
+export {Vec, attr, calcNoteStartingPos, except}
 
 /**
  * A random number generator which provides two pure functions

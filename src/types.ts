@@ -33,7 +33,8 @@ type State = Readonly<{
     time: number,
     notesToPlay: Body[],
     notesAuto: MusicNote[],
-    expiredNotes: Body[]
+    expiredNotes: Body[],
+    noteStatus: {playStatus: string, note: Body}[]
 }>;
 
 type Circle = Readonly<{ pos: Vec, radius: number, colour: string }>
