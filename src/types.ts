@@ -1,6 +1,6 @@
 import { Vec } from "./util.ts";
 
-export type {Key, Event, MusicNote, NoteBallAssociation, State, ViewType, ObjectId, Circle, Body, ColourPos}
+export type {Key, Event, MusicNote, NoteBallAssociation, State, ViewType, ObjectId, Circle, Body, ColourPos, noteStatusItem}
 export type {Action}
 
 /** User input */
@@ -31,10 +31,10 @@ type State = Readonly<{
     score: number,
     highscore: number,
     time: number,
-    notesToPlay: Body[],
+    shortNoteStatus: noteStatusItem[],
     notesAuto: MusicNote[],
-    expiredNotes: Body[],
-    noteStatus: {playStatus: string, note: Body}[]
+    expiredNotes: noteStatusItem[],
+    longNoteStatus: noteStatusItem[]
 }>;
 
 type Circle = Readonly<{ pos: Vec, radius: number, colour: string }>
@@ -63,3 +63,8 @@ type ColourPos = [colour: string, yPositionPercentage: number]
 interface Action {
     apply(s: State): State;
 }
+
+type noteStatusItem = Readonly<{
+    musicNote: Body,
+    playStatus: string
+}>

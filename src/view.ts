@@ -66,10 +66,7 @@ function updateView (onFinish: () => void) {
             highScoreText.innerText = s.highscore.toString();
         }
 
-        s.notesToPlay.forEach(updateBodyView(svg))
-        s.noteStatus.forEach((note) => updateBodyView(svg)(note.note))
-
-        s.expiredNotes.map(o => document.getElementById(o.id))
+        s.expiredNotes.map(o => document.getElementById(o.musicNote.id))
             .filter(isNotNullOrUndefined)
             .forEach(v => {
                 try {

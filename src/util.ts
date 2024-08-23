@@ -1,6 +1,6 @@
 import { Circle, ColourPos, MusicNote } from "./types.ts";
 import { Note, Viewport } from "./main.ts";
-export {Vec, attr, calcNoteStartingPos, except, isNotNullOrUndefined}
+export {Vec, attr, calcNoteStartingPos, except, isNotNullOrUndefined, not, between}
 
 /**
  * A random number generator which provides two pure functions
@@ -99,4 +99,8 @@ const calcNoteStartingPos = (note: MusicNote): Circle => {
 
     const colourPos = calcPercentage(note);
     return {pos: new Vec(Viewport.CANVAS_WIDTH * colourPos[1], 0), radius: Note.RADIUS, colour: colourPos[0]};
+}
+
+const between = (x: number, min: number, max: number) => {
+    return x >= min && x < max;
 }
