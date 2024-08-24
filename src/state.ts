@@ -13,7 +13,6 @@ import {
 import { between, calcNoteStartingPos, except, Vec } from "./util.ts";
 import { Viewport } from "./main.ts";
 import { not } from "./util.ts";
-import { BehaviorSubject, Observable, Subject, take } from "rxjs";
 export {initialState}
 
 const initialState: State = {
@@ -73,12 +72,12 @@ class Tick implements Action {
         const livingLongNotes = s.longNoteStatus.filter(not(longExpiredNoteCriteria));
 
 
-        return {
+        return Tick.changeNoteStatus({
             ...s,
             expiredNotes: expiredShortNotes.concat(expiredLongNotes),
             shortNoteStatus: livingShortNotes,
             longNoteStatus: livingLongNotes
-        }
+        })
     }
 
     static changeNoteStatus = (s: State): State => {

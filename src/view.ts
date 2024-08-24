@@ -1,7 +1,7 @@
 // Canvas elements
 import { Viewport } from "./main.ts";
 import { State, Body } from "./types.ts";
-import { attr, isNotNullOrUndefined } from "./util.ts";
+import { attr, between, isNotNullOrUndefined } from "./util.ts";
 
 /**
  * Displays a SVG element on the canvas. Brings to foreground.
@@ -65,6 +65,27 @@ function updateView (onFinish: () => void) {
         if (highScoreText) {
             highScoreText.innerText = s.highscore.toString();
         }
+
+        s.notesAuto.forEach((note) => {
+            if (between(s.time, note.start, note.end)) {
+                // Play note
+            }
+        })
+
+        s.shortNoteStatus.forEach((note)=>updateBodyView(svg)(note.musicNote))
+        s.longNoteStatus.forEach((note) => updateBodyView(svg)(note.musicNote))
+
+        const playedNotes = (s.shortNoteStatus.filter((note) => note.playStatus === "played"))
+            .concat(s.longNoteStatus.filter((note) => note.playStatus === "played"));
+
+        // Play the played notes here
+
+        const releasedNotes = s.longNoteStatus.filter((note) => note.playStatus === "dead");
+        const ignoredNotes = (s.shortNoteStatus.filter((note) => note.playStatus === "ignored"))
+            .concat(s.longNoteStatus.filter((note) => note.playStatus === "ignored"));
+
+        // Play random notes for the ignored notes here.
+        // Stop playing the released notes here.
 
         s.expiredNotes.map(o => document.getElementById(o.musicNote.id))
             .filter(isNotNullOrUndefined)
