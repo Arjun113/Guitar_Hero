@@ -20,7 +20,7 @@ import * as Tone from "tone";
 import { SampleLibrary } from "./tonejs-instruments";
 import { Key, MusicNote, NoteBallAssociation, State } from "./types.ts";
 import { initialState } from "./state.ts";
-export { Note, Viewport, createSvgElement }
+export { Note, Viewport}
 
 /** Constants */
 
@@ -48,78 +48,11 @@ const Note = {
  */
 const tick = (s: State) => s;
 
-/** Rendering (side effects) */
-
-/**
- * Displays a SVG element on the canvas. Brings to foreground.
- * @param elem SVG element to display
- */
-const show = (elem: SVGGraphicsElement) => {
-    elem.setAttribute("visibility", "visible");
-    elem.parentNode!.appendChild(elem);
-};
-
-/**
- * Hides a SVG element on the canvas.
- * @param elem SVG element to hide
- */
-const hide = (elem: SVGGraphicsElement) =>
-    elem.setAttribute("visibility", "hidden");
-
-/**
- * Creates an SVG element with the given properties.
- *
- * See https://developer.mozilla.org/en-US/docs/Web/SVG/Element for valid
- * element names and properties.
- *
- * @param namespace Namespace of the SVG element
- * @param name SVGElement name
- * @param props Properties to set on the SVG element
- * @returns SVG element
- */
-const createSvgElement = (
-    namespace: string | null,
-    name: string,
-    props: Record<string, string> = {},
-) => {
-    const elem = document.createElementNS(namespace, name) as SVGElement;
-    Object.entries(props).forEach(([k, v]) => elem.setAttribute(k, v));
-    return elem;
-};
-
-const PlayNote = (note: MusicNote, samples: {[p: string] : Tone.Sampler}) => {
-    const notePitch = Tone.Frequency(note.pitch, "midi").toNote();
-    const noteTime = (note.end - note.start) >= 1 ? undefined : (note.end - note.start);
-    samples[note.instrument].triggerAttack(
-        notePitch, noteTime, (note.velocity / 127)
-    )
-}
-
 /**
  * This is the function called on page load. Your main game loop
  * should be called here.
  */
 export function main(csv_contents: string, samples: {[p: string] : Tone.Sampler}) {
-    // Canvas elements
-    const svg = document.querySelector("#svgCanvas") as SVGGraphicsElement &
-        HTMLElement;
-    const preview = document.querySelector(
-        "#svgPreview",
-    ) as SVGGraphicsElement & HTMLElement;
-    const gameover = document.querySelector("#gameOver") as SVGGraphicsElement &
-        HTMLElement;
-    const container = document.querySelector("#main") as HTMLElement;
-
-    svg.setAttribute("height", `${Viewport.CANVAS_HEIGHT}`);
-    svg.setAttribute("width", `${Viewport.CANVAS_WIDTH}`);
-
-    // Text fields
-    const multiplier = document.querySelector("#multiplierText") as HTMLElement;
-    const scoreText = document.querySelector("#scoreText") as HTMLElement;
-    const highScoreText = document.querySelector(
-        "#highScoreText",
-    ) as HTMLElement;
-
     /** User input */
 
     const key$ = fromEvent<KeyboardEvent>(document, "keypress");

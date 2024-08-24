@@ -1,7 +1,9 @@
 // Canvas elements
 import { Viewport } from "./main.ts";
-import { State, Body } from "./types.ts";
+import { State, Body, MusicNote } from "./types.ts";
 import { attr, between, isNotNullOrUndefined } from "./util.ts";
+import * as Tone from "tone";
+import { Observable, sample } from "rxjs";
 
 /**
  * Displays a SVG element on the canvas. Brings to foreground.
@@ -32,7 +34,7 @@ const updateBodyView = (rootSVG: HTMLElement) => (b: Body) => {
 };
 
 
-function updateView (onFinish: () => void) {
+function updateView (onFinish: () => void, rand$: Observable<number>) {
     return function (s: State) {
         const svg = document.querySelector("#svgCanvas") as SVGGraphicsElement &
             HTMLElement;
@@ -78,7 +80,6 @@ function updateView (onFinish: () => void) {
         const playedNotes = (s.shortNoteStatus.filter((note) => note.playStatus === "played"))
             .concat(s.longNoteStatus.filter((note) => note.playStatus === "played"));
 
-        // Play the played notes here
 
         const releasedNotes = s.longNoteStatus.filter((note) => note.playStatus === "dead");
         const ignoredNotes = (s.shortNoteStatus.filter((note) => note.playStatus === "ignored"))
@@ -103,5 +104,28 @@ function updateView (onFinish: () => void) {
         }
 
     }
+}
+
+const playNotes = (musicNote: MusicNote)=>(samples: {[p: string] : Tone.Sampler}, isTriggeredOrNot: boolean, randomNumber: number) => {
+    if (isTriggeredOrNot) {
+        samples[musicNote.instrument].triggerAttack(
+            Tone.Frequency(musicNote.pitch, "midi").toNote(),
+            (musicNote.end - musicNote.start),
+            musicNote.velocity
+        )
+    }
+    else {
+        samples[musicNote.instrument].triggerAttack(
+            Tone.Frequency(randomNumber, "midi").toNote(),
+            (musicNote.end - musicNote.start),
+            musicNote.velocity
+        )
+    }
+}
+
+const releaseNotes = (musicNote: MusicNote) => (samples: {[p: string] : Tone.Sampler}) => {
+    samples[musicNote.instrument].triggerAttack(
+        Tone.Frequency(musicNote.pitch, "midi").toNote()
+    )
 }
 
