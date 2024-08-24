@@ -3,7 +3,7 @@ import { Viewport } from "./main.ts";
 import { State, Body, MusicNote } from "./types.ts";
 import { attr, between, isNotNullOrUndefined } from "./util.ts";
 import * as Tone from "tone";
-import { Observable, sample } from "rxjs";
+import { Observable } from "rxjs";
 
 /**
  * Displays a SVG element on the canvas. Brings to foreground.
@@ -23,9 +23,9 @@ const hide = (elem: SVGGraphicsElement) =>
 
 const updateBodyView = (rootSVG: HTMLElement) => (b: Body) => {
     function createBodyView() {
-        const v = document.createElementNS(rootSVG.namespaceURI, "ellipse");
+        const v = document.createElementNS(rootSVG.namespaceURI, "circle");
         attr(v, { id: b.id, rx: b.radius, ry: b.radius });
-        v.classList.add(b.viewType)
+        v.classList.add(b.colour + b.viewType)
         rootSVG.appendChild(v)
         return v;
     }
@@ -80,13 +80,13 @@ function updateView (onFinish: () => void, rand$: Observable<number>) {
         const playedNotes = (s.shortNoteStatus.filter((note) => note.playStatus === "played"))
             .concat(s.longNoteStatus.filter((note) => note.playStatus === "played"));
 
+        // Add code to play notes
 
         const releasedNotes = s.longNoteStatus.filter((note) => note.playStatus === "dead");
         const ignoredNotes = (s.shortNoteStatus.filter((note) => note.playStatus === "ignored"))
             .concat(s.longNoteStatus.filter((note) => note.playStatus === "ignored"));
 
         // Play random notes for the ignored notes here.
-        // Stop playing the released notes here.
 
         s.expiredNotes.map(o => document.getElementById(o.musicNote.id))
             .filter(isNotNullOrUndefined)
@@ -106,7 +106,7 @@ function updateView (onFinish: () => void, rand$: Observable<number>) {
     }
 }
 
-const playNotes = (musicNote: MusicNote)=>(samples: {[p: string] : Tone.Sampler}, isTriggeredOrNot: boolean, randomNumber: number) => {
+const playNotes = (musicNote: MusicNote)=>(samples: {[p: string] : Tone.Sampler}, isTriggeredOrNot: boolean, randomNumber?: number) => {
     if (isTriggeredOrNot) {
         samples[musicNote.instrument].triggerAttack(
             Tone.Frequency(musicNote.pitch, "midi").toNote(),
@@ -124,7 +124,7 @@ const playNotes = (musicNote: MusicNote)=>(samples: {[p: string] : Tone.Sampler}
 }
 
 const releaseNotes = (musicNote: MusicNote) => (samples: {[p: string] : Tone.Sampler}) => {
-    samples[musicNote.instrument].triggerAttack(
+    samples[musicNote.instrument].triggerRelease(
         Tone.Frequency(musicNote.pitch, "midi").toNote()
     )
 }

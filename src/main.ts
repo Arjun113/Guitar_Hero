@@ -30,7 +30,7 @@ const Viewport = {
 } as const;
 
 const Constants = {
-    TICK_RATE_MS: 500,
+    TICK_RATE_MS: 1000/60,
     SONG_NAME: "RockinRobin",
 } as const;
 
