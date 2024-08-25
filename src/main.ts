@@ -89,7 +89,7 @@ export function main(csv_contents: string, samples: {[p: string] : Tone.Sampler}
         releaseBlueNote$ = key$('keyup', 'KeyK').pipe(map(_ => new releaseNoteKey("blue")))
 
     const addUserNote$ = from(userNoteSeries).pipe(
-        mergeMap((note) => timer(note.start * 1000).pipe(
+        mergeMap((note) => timer((note.start - 2) * 1000).pipe(
             map(_ => new addUserNote(note))
         ))
     )
@@ -150,13 +150,13 @@ if (typeof window !== "undefined") {
         for (const instrument in samples) {
             samples[instrument].toDestination();
             samples[instrument].release = 0.5;
+        }
             fetch(`${baseUrl}/assets/${Constants.SONG_NAME}.csv`)
                 .then((response) => response.text())
                 .then((text) => start_game(text))
                 .catch((error) =>
                     console.error("Error fetching the CSV file:", error),
                 );
-        }
     })
 }
 
