@@ -14,12 +14,13 @@
 
 import "./style.css";
 
-import { fromEvent, interval, merge, timer } from "rxjs";
+import { from, fromEvent, interval, merge, mergeMap, Observable, Subscription, timer } from "rxjs";
 import { map, filter, scan } from "rxjs/operators";
 import * as Tone from "tone";
 import { SampleLibrary } from "./tonejs-instruments";
-import { Key, MusicNote, NoteBallAssociation, State } from "./types.ts";
-import { initialState } from "./state.ts";
+import { Key, MusicNote, NoteBallAssociation, State, Event } from "./types.ts";
+import { addSelfNote, addUserNote, initialState, pressNoteKey, reduceState, releaseNoteKey, Tick } from "./state.ts";
+import { updateView } from "./view.ts";
 export { Note, Viewport}
 
 /** Constants */
@@ -55,80 +56,61 @@ const tick = (s: State) => s;
 export function main(csv_contents: string, samples: {[p: string] : Tone.Sampler}) {
     /** User input */
 
-    const key$ = fromEvent<KeyboardEvent>(document, "keypress");
+    const key$ = (e: Event, k: Key) =>
+        fromEvent<KeyboardEvent>(document, e)
+            .pipe(
+                filter(({code}) => code === k),
+                filter(({repeat}) => !repeat))
 
-    const fromKey = (keyCode: Key) =>
-        key$.pipe(filter(({ code }) => code === keyCode));
-
-    /** Determines the rate of time steps */
-    const tick$ = interval(Constants.TICK_RATE_MS);
-
-    /**
-     * Renders the current state to the canvas.
-     *
-     * In MVC terms, this updates the View using the Model.
-     *
-     * @param s Current state
-     */
-    const initRender = (s: State) => {
-        // Add blocks to the main grid canvas
-        const greenCircle = createSvgElement(svg.namespaceURI, "circle", {
-            r: `${Note.RADIUS}`,
-            cx: "20%",
-            cy: "200",
-            style: "fill: green",
-            class: "shadow",
-        });
-
-        const redCircle = createSvgElement(svg.namespaceURI, "circle", {
-            r: `${Note.RADIUS}`,
-            cx: "40%",
-            cy: "50",
-            style: "fill: red",
-            class: "shadow",
-        });
-
-        const blueCircle = createSvgElement(svg.namespaceURI, "circle", {
-            r: `${Note.RADIUS}`,
-            cx: "60%",
-            cy: "50",
-            style: "fill: blue",
-            class: "shadow",
-        });
-
-        const yellowCircle = createSvgElement(svg.namespaceURI, "circle", {
-            r: `${Note.RADIUS}`,
-            cx: "80%",
-            cy: "50",
-            style: "fill: yellow",
-            class: "shadow",
-        });
-
-        svg.appendChild(greenCircle);
-        svg.appendChild(redCircle);
-        svg.appendChild(blueCircle);
-        svg.appendChild(yellowCircle);
-    };
-
-    const source$ = tick$
-        .pipe(scan((s: State) => ({...s, gameEnd: false }), initialState))
-        .subscribe((s: State) => {
-            initRender(s);
-
-            if (s.gameEnd) {
-                show(gameover);
-            } else {
-                hide(gameover);
-            }
-        });
+    const tick$ = interval(Constants.TICK_RATE_MS)
+        .pipe(map(elapsed => new Tick(elapsed)))
 
     const lines = csv_contents.split("\n");
     const noteSeries = lines.map((line) => ({userPlayed: Boolean(line.split(',')[0]),
-                                                                                instrument: line.split(',')[1],
-                                                                                velocity: Number(line.split(',')[2]),
-                                                                                pitch: Number(line.split(',')[3]),
-                                                                                start: Number(line.split(',')[4]),
-                                                                                end: Number(line.split(',')[5])}) as MusicNote)
+        instrument: line.split(',')[1],
+        velocity: Number(line.split(',')[2]),
+        pitch: Number(line.split(',')[3]),
+        start: Number(line.split(',')[4]),
+        end: Number(line.split(',')[5])}) as MusicNote)
+
+    const selfNoteSeries = noteSeries.filter((note) => !note.userPlayed);
+    const userNoteSeries = noteSeries.filter((note) => note.userPlayed);
+
+
+    /** Key actions and automated note insertions
+     */
+    const pressRedNote$ = key$('keydown', 'KeyH').pipe(map(_ => new pressNoteKey("red"))),
+        pressGreenNote$ = key$('keydown', 'KeyJ').pipe(map(_ => new pressNoteKey("green"))),
+        pressYellowNote$ = key$('keydown', 'KeyL').pipe(map(_ => new pressNoteKey("yellow"))),
+        pressBlueNote$ = key$('keydown', 'KeyK').pipe(map(_ => new pressNoteKey("blue"))),
+        releaseRedNote$ = key$('keyup', 'KeyH').pipe(map(_ => new releaseNoteKey("red"))),
+        releaseYellowNote$ = key$('keyup', 'KeyL').pipe(map(_ => new releaseNoteKey("yellow"))),
+        releaseGreenNote$ = key$('keyup', 'KeyK').pipe(map(_ => new releaseNoteKey("green"))),
+        releaseBlueNote$ = key$('keyup', 'KeyK').pipe(map(_ => new releaseNoteKey("blue")))
+
+    const addUserNote$ = from(userNoteSeries).pipe(
+        mergeMap((note) => timer(note.start * 1000).pipe(
+            map(_ => new addUserNote(note))
+        ))
+    )
+
+    const addSelfNote$ = from(selfNoteSeries).pipe(
+        mergeMap((note) => timer(note.start * 1000).pipe(
+            map(_ => new addSelfNote(note))
+        ))
+    )
+
+    // Merge all actions + note additions + tick into one mega-observable
+
+    const action$ = merge(pressBlueNote$, pressGreenNote$, pressRedNote$, pressYellowNote$,
+                                                    releaseBlueNote$, releaseGreenNote$, releaseRedNote$, releaseYellowNote$,
+                                                        addSelfNote$, addUserNote$, tick$);
+
+    // Accumulate and transduce the states
+    const state$: Observable<State> = action$.pipe(
+        scan((acc_state, new_act) => reduceState(new_act, acc_state), initialState)
+    );
+    const subscription: Subscription = state$.subscribe(updateView(() => subscription.unsubscribe()));
 
 
 }

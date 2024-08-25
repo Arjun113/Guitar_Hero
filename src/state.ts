@@ -13,7 +13,7 @@ import {
 import { between, calcNoteStartingPos, except, Vec } from "./util.ts";
 import { Viewport } from "./main.ts";
 import { not } from "./util.ts";
-export {initialState}
+export {initialState, Tick, pressNoteKey, addSelfNote, addUserNote, releaseNoteKey, reduceState}
 
 const initialState: State = {
     gameEnd: false,
@@ -133,7 +133,7 @@ class addSelfNote implements Action {
 class pressNoteKey implements Action {
     constructor (public readonly keyColour: string) {}
 
-    apply = (s: State) => {
+    apply = (s: State): State => {
         function findNotesToPlay(keyColour: string, notesList: noteStatusItem[]): noteStatusItem[] {
             if (keyColour == "red") {
                 return notesList.filter((note) => between(note.musicNote.note.pitch, 0, 32) && Math.abs(note.musicNote.note.start - note.musicNote.createTime) < 0.04)

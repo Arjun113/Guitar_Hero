@@ -4,6 +4,7 @@ import { State, Body, MusicNote } from "./types.ts";
 import { attr, between, isNotNullOrUndefined } from "./util.ts";
 import * as Tone from "tone";
 import { Observable } from "rxjs";
+export {updateView}
 
 /**
  * Displays a SVG element on the canvas. Brings to foreground.
@@ -34,7 +35,7 @@ const updateBodyView = (rootSVG: HTMLElement) => (b: Body) => {
 };
 
 
-function updateView (onFinish: () => void, rand$: Observable<number>) {
+function updateView (onFinish: () => void) {
     return function (s: State) {
         const svg = document.querySelector("#svgCanvas") as SVGGraphicsElement &
             HTMLElement;
