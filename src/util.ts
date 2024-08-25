@@ -83,17 +83,17 @@ function isNotNullOrUndefined<T extends object>(input: null | undefined | T): in
 
 const calcNoteStartingPos = (note: MusicNote): Circle => {
     function calcPercentage(note: MusicNote): ColourPos {
-        if (note.pitch < 32 && note.pitch > 0) {
-            return ["red", 20];
+        if (note.pitch < 32 && note.pitch >= 0) {
+            return ["green", 0.2];
         }
         else if (note.pitch < 64 && note.pitch >= 32) {
-            return ["green", 40];
+            return ["red", 0.4];
         }
         else if (note.pitch < 96 && note.pitch >= 64) {
-            return ["blue", 60];
+            return ["blue", 0.6];
         }
         else {
-            return ["yellow", 80];
+            return ["yellow", 0.8];
         }
     }
 

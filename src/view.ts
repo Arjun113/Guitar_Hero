@@ -22,21 +22,10 @@ const show = (elem: SVGGraphicsElement) => {
 const hide = (elem: SVGGraphicsElement) =>
     elem.setAttribute("visibility", "hidden");
 
-const updateBodyView = (rootSVG: HTMLElement) => (b: Body) => {
-    function createBodyView() {
-        const v = document.createElementNS(rootSVG.namespaceURI, "circle");
-        attr(v, { id: b.id, rx: b.radius, ry: b.radius });
-        v.classList.add(b.colour + b.viewType)
-        rootSVG.appendChild(v)
-        return v;
-    }
-    const v = document.getElementById(b.id) || createBodyView();
-    attr(v, { cx: b.pos.x, cy: b.pos.y });
-};
-
 
 function updateView (onFinish: () => void) {
-    return function (s: State) {
+    return function(s: State) {
+        console.log(s);
         const svg = document.querySelector("#svgCanvas") as SVGGraphicsElement &
             HTMLElement;
         const preview = document.querySelector(
@@ -53,11 +42,23 @@ function updateView (onFinish: () => void) {
             "#highScoreText",
         ) as HTMLElement;
 
+        const updateBodyView = (rootSVG: HTMLElement) => (b: Body) => {
+            function createBodyView() {
+                const v = document.createElementNS(rootSVG.namespaceURI, "circle") as SVGGraphicsElement;
+                attr(v, { id: b.id, r: b.radius });
+                v.classList.add(b.colour + b.viewType)
+                rootSVG.appendChild(v)
+                return v;
+            }
+            const v = document.getElementById(b.id) || createBodyView();
+            attr(v, { cx: b.pos.x, cy: b.pos.y });
+        };
+
         if (!svg) {
             return
         }
 
-        if(scoreText) {
+        if (scoreText) {
             scoreText.innerText = s.score.toString();
         }
 
@@ -75,13 +76,11 @@ function updateView (onFinish: () => void) {
             }
         })
 
-        s.shortNoteStatus.forEach((note)=>updateBodyView(svg)(note.musicNote))
+        s.shortNoteStatus.forEach((note) => updateBodyView(svg)(note.musicNote))
         s.longNoteStatus.forEach((note) => updateBodyView(svg)(note.musicNote))
 
         const playedNotes = (s.shortNoteStatus.filter((note) => note.playStatus === "played"))
             .concat(s.longNoteStatus.filter((note) => note.playStatus === "played"));
-
-        // Add code to play notes
 
         const releasedNotes = s.longNoteStatus.filter((note) => note.playStatus === "dead");
         const ignoredNotes = (s.shortNoteStatus.filter((note) => note.playStatus === "ignored"))
@@ -100,33 +99,32 @@ function updateView (onFinish: () => void) {
                 }
             })
 
-        if(s.gameEnd) {
+        if (s.gameEnd) {
             show(gameover);
         }
-
     }
-}
 
-const playNotes = (musicNote: MusicNote)=>(samples: {[p: string] : Tone.Sampler}, isTriggeredOrNot: boolean, randomNumber?: number) => {
-    if (isTriggeredOrNot) {
-        samples[musicNote.instrument].triggerAttack(
-            Tone.Frequency(musicNote.pitch, "midi").toNote(),
-            (musicNote.end - musicNote.start),
-            musicNote.velocity
+    const playNotes = (musicNote: MusicNote) => (samples: {
+        [p: string]: Tone.Sampler
+    }, isTriggeredOrNot: boolean, randomNumber?: number) => {
+        if (isTriggeredOrNot) {
+            samples[musicNote.instrument].triggerAttack(
+                Tone.Frequency(musicNote.pitch, "midi").toNote(),
+                (musicNote.end - musicNote.start),
+                musicNote.velocity
+            )
+        } else {
+            samples[musicNote.instrument].triggerAttack(
+                Tone.Frequency(randomNumber, "midi").toNote(),
+                (musicNote.end - musicNote.start),
+                musicNote.velocity
+            )
+        }
+    }
+
+    const releaseNotes = (musicNote: MusicNote) => (samples: { [p: string]: Tone.Sampler }) => {
+        samples[musicNote.instrument].triggerRelease(
+            Tone.Frequency(musicNote.pitch, "midi").toNote()
         )
     }
-    else {
-        samples[musicNote.instrument].triggerAttack(
-            Tone.Frequency(randomNumber, "midi").toNote(),
-            (musicNote.end - musicNote.start),
-            musicNote.velocity
-        )
-    }
 }
-
-const releaseNotes = (musicNote: MusicNote) => (samples: {[p: string] : Tone.Sampler}) => {
-    samples[musicNote.instrument].triggerRelease(
-        Tone.Frequency(musicNote.pitch, "midi").toNote()
-    )
-}
-

@@ -11,7 +11,7 @@ import {
     noteStatusItem,
 } from "./types.ts";
 import { between, calcNoteStartingPos, except, Vec } from "./util.ts";
-import { Viewport } from "./main.ts";
+import { Constants, Viewport } from "./main.ts";
 import { not } from "./util.ts";
 export {initialState, Tick, pressNoteKey, addSelfNote, addUserNote, releaseNoteKey, reduceState}
 
@@ -57,14 +57,13 @@ class Tick implements Action {
     static moveNote = (s: State) => (noteStatusItem: noteStatusItem): noteStatusItem => ({
         ...noteStatusItem,
         musicNote: {
-            ...noteStatusItem.musicNote, pos: noteStatusItem.musicNote.pos.add(noteStatusItem.musicNote.vel),
-            vel: noteStatusItem.musicNote.vel.scale(s.multiplier)
+            ...noteStatusItem.musicNote, pos: noteStatusItem.musicNote.pos.add(noteStatusItem.musicNote.vel.scale(1/Constants.TICK_RATE_MS))
         }
     })
 
     static handleExpiredNotes = (s: State): State => {
-        const shortExpiredNoteCriteria = (noteItem: noteStatusItem) => (noteItem.playStatus === "played" || noteItem.playStatus === "ignored" || noteItem.musicNote.note.end <= s.time);
-        const longExpiredNoteCriteria = (noteItem: noteStatusItem) => (noteItem.playStatus === "dead" || noteItem.musicNote.note.end <= s.time);
+        const shortExpiredNoteCriteria = (noteItem: noteStatusItem) => (noteItem.playStatus === "played" || noteItem.playStatus === "ignored" || noteItem.musicNote.pos.y > 400);
+        const longExpiredNoteCriteria = (noteItem: noteStatusItem) => (noteItem.playStatus === "dead" || noteItem.musicNote.pos.y > 400);
 
         const expiredShortNotes = s.shortNoteStatus.filter(shortExpiredNoteCriteria);
         const expiredLongNotes = s.longNoteStatus.filter(longExpiredNoteCriteria);
@@ -81,7 +80,7 @@ class Tick implements Action {
     }
 
     static changeNoteStatus = (s: State): State => {
-        const missedNotes = (noteItem: noteStatusItem) => (noteItem.playStatus === "ready" && noteItem.musicNote.note.start > s.time)
+        const missedNotes = (noteItem: noteStatusItem) => (noteItem.playStatus === "ready" && noteItem.musicNote.pos.y > 400)
 
         const missedShortNotes = s.shortNoteStatus.filter(missedNotes).map((note) => ({
             playStatus: "ignored",
@@ -110,13 +109,13 @@ class addUserNote implements Action{
        if (this.note.end - this.note.start < 1) {
            return {...s, shortNoteStatus: s.shortNoteStatus.concat(({playStatus: "ready",
                    musicNote: createSmallNote({id: s.total_notes_user.toString(), createTime: s.time})
-                   (calcNoteStartingPos(this.note))(this.note)(new Vec(0, Viewport.CANVAS_HEIGHT / 2))} as noteStatusItem)),
+                   (calcNoteStartingPos(this.note))(this.note)(new Vec(0, Viewport.CANVAS_HEIGHT/2))} as noteStatusItem)),
                 total_notes_user: s.total_notes_user + 1}
        }
        else {
            return {...s, longNoteStatus: s.longNoteStatus.concat(({playStatus: "ready",
                    musicNote: createLongNote({id: s.total_notes_user.toString(), createTime: s.time})
-                   (calcNoteStartingPos(this.note))(this.note)(new Vec(0, Viewport.CANVAS_HEIGHT / 2))} as noteStatusItem)),
+                   (calcNoteStartingPos(this.note))(this.note)(new Vec(0, Viewport.CANVAS_HEIGHT/2))} as noteStatusItem)),
                total_notes_user: s.total_notes_user + 1}
        }
     }
@@ -136,16 +135,16 @@ class pressNoteKey implements Action {
     apply = (s: State): State => {
         function findNotesToPlay(keyColour: string, notesList: noteStatusItem[]): noteStatusItem[] {
             if (keyColour == "red") {
-                return notesList.filter((note) => between(note.musicNote.note.pitch, 0, 32) && Math.abs(note.musicNote.note.start - note.musicNote.createTime) < 0.04)
+                return notesList.filter((note) => between(note.musicNote.note.pitch, 0, 32) && (s.time - note.musicNote.createTime) > 10)
             }
             else if (keyColour == "green") {
-                return notesList.filter((note) => between(note.musicNote.note.pitch, 32, 64) && Math.abs(note.musicNote.note.start - note.musicNote.createTime) < 0.04)
+                return notesList.filter((note) => between(note.musicNote.note.pitch, 32, 64) && (s.time - note.musicNote.createTime) > 10)
             }
             else if (keyColour == "blue") {
-                return notesList.filter((note) => between(note.musicNote.note.pitch, 64, 96) && Math.abs(note.musicNote.note.start - note.musicNote.createTime) < 0.04)
+                return notesList.filter((note) => between(note.musicNote.note.pitch, 64, 96) && (s.time - note.musicNote.createTime) > 10)
             }
             else {
-                return notesList.filter((note) => between(note.musicNote.note.pitch, 96, 128) && Math.abs(note.musicNote.note.start - note.musicNote.createTime) < 0.04)
+                return notesList.filter((note) => between(note.musicNote.note.pitch, 96, 128) && (s.time - note.musicNote.createTime) > 10)
             }
         }
 
@@ -179,7 +178,6 @@ class releaseNoteKey implements Action {
                 return notesList.filter((note) => between(note.musicNote.note.pitch, 96, 128) && note.playStatus === "pressed")
             }
         }
-
         const releasableLongNotes = findNotesToRelease(this.keyColour, s.longNoteStatus);
         const notReleasableLongNotes = s.shortNoteStatus.filter(not(releasableLongNotes.includes));
         return {...s,

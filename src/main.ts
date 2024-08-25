@@ -14,14 +14,14 @@
 
 import "./style.css";
 
-import { from, fromEvent, interval, merge, mergeMap, Observable, Subscription, timer } from "rxjs";
+import { from, fromEvent, interval, merge, mergeMap, Observable, Subscription, take, timer } from "rxjs";
 import { map, filter, scan } from "rxjs/operators";
 import * as Tone from "tone";
 import { SampleLibrary } from "./tonejs-instruments";
 import { Key, MusicNote, NoteBallAssociation, State, Event } from "./types.ts";
 import { addSelfNote, addUserNote, initialState, pressNoteKey, reduceState, releaseNoteKey, Tick } from "./state.ts";
 import { updateView } from "./view.ts";
-export { Note, Viewport}
+export { Note, Viewport, Constants}
 
 /** Constants */
 
@@ -31,7 +31,7 @@ const Viewport = {
 } as const;
 
 const Constants = {
-    TICK_RATE_MS: 1000/60,
+    TICK_RATE_MS: 1000/30,
     SONG_NAME: "RockinRobin",
 } as const;
 
@@ -55,7 +55,6 @@ const tick = (s: State) => s;
  */
 export function main(csv_contents: string, samples: {[p: string] : Tone.Sampler}) {
     /** User input */
-
     const key$ = (e: Event, k: Key) =>
         fromEvent<KeyboardEvent>(document, e)
             .pipe(
@@ -66,12 +65,12 @@ export function main(csv_contents: string, samples: {[p: string] : Tone.Sampler}
         .pipe(map(elapsed => new Tick(elapsed)))
 
     const lines = csv_contents.split("\n");
-    const noteSeries = lines.map((line) => ({userPlayed: Boolean(line.split(',')[0]),
+    const noteSeries = lines.map((line) => ({userPlayed: Boolean(line.split(',')[0] === "True"),
         instrument: line.split(',')[1],
-        velocity: Number(line.split(',')[2]),
-        pitch: Number(line.split(',')[3]),
-        start: Number(line.split(',')[4]),
-        end: Number(line.split(',')[5])}) as MusicNote)
+        velocity: parseFloat(line.split(',')[2]),
+        pitch: parseFloat(line.split(',')[3]),
+        start: parseFloat(line.split(',')[4]),
+        end: parseFloat(line.split(',')[5])}) as MusicNote)
 
     const selfNoteSeries = noteSeries.filter((note) => !note.userPlayed);
     const userNoteSeries = noteSeries.filter((note) => note.userPlayed);
@@ -90,21 +89,21 @@ export function main(csv_contents: string, samples: {[p: string] : Tone.Sampler}
 
     const addUserNote$ = from(userNoteSeries).pipe(
         mergeMap((note) => timer((note.start - 2) * 1000).pipe(
+            take(1),
             map(_ => new addUserNote(note))
         ))
     )
 
     const addSelfNote$ = from(selfNoteSeries).pipe(
         mergeMap((note) => timer(note.start * 1000).pipe(
+            take(1),
             map(_ => new addSelfNote(note))
         ))
     )
 
     // Merge all actions + note additions + tick into one mega-observable
 
-    const action$ = merge(pressBlueNote$, pressGreenNote$, pressRedNote$, pressYellowNote$,
-                                                    releaseBlueNote$, releaseGreenNote$, releaseRedNote$, releaseYellowNote$,
-                                                        addSelfNote$, addUserNote$, tick$);
+    const action$ = merge(addSelfNote$, addUserNote$, tick$);
 
     // Accumulate and transduce the states
     const state$: Observable<State> = action$.pipe(
