@@ -14,13 +14,26 @@
 
 import "./style.css";
 
-import { from, fromEvent, interval, merge, mergeMap, Observable, Subscription, take, timer } from "rxjs";
+import {
+    concatMap, delay,
+    from,
+    fromEvent,
+    interval,
+    merge,
+    mergeMap,
+    Observable, of,
+    Subscription,
+    switchMap,
+    take,
+    timer,
+} from "rxjs";
 import { map, filter, scan } from "rxjs/operators";
 import * as Tone from "tone";
 import { SampleLibrary } from "./tonejs-instruments";
 import { Key, MusicNote, NoteBallAssociation, State, Event } from "./types.ts";
 import { addSelfNote, addUserNote, initialState, pressNoteKey, reduceState, releaseNoteKey, Tick } from "./state.ts";
 import { updateView } from "./view.ts";
+import { not, playNotes, RNG } from "./util.ts";
 export { Note, Viewport, Constants}
 
 /** Constants */
@@ -31,7 +44,7 @@ const Viewport = {
 } as const;
 
 const Constants = {
-    TICK_RATE_MS: 1000/30,
+    TICK_RATE_MS: 10,
     SONG_NAME: "RockinRobin",
 } as const;
 
@@ -54,7 +67,22 @@ const tick = (s: State) => s;
  * should be called here.
  */
 export function main(csv_contents: string, samples: {[p: string] : Tone.Sampler}) {
-    /** User input */
+    const svg = document.querySelector("#svgCanvas") as SVGGraphicsElement &
+        HTMLElement;
+    const preview = document.querySelector(
+        "#svgPreview",
+    ) as SVGGraphicsElement & HTMLElement;
+    const gameover = document.querySelector("#gameOver") as SVGGraphicsElement &
+        HTMLElement;
+    const notesContainer = document.createElementNS(svg.namespaceURI, "group") as HTMLElement;
+
+
+    /** Random numbers for playback **/
+    const randomnumber$ = (seed: number) => interval(10 as number).pipe(
+        scan((acc, val) => RNG.hash(val), seed),
+        map((randnum) => RNG.scale(randnum))
+    )
+
     const key$ = (e: Event, k: Key) =>
         fromEvent<KeyboardEvent>(document, e)
             .pipe(
@@ -72,6 +100,8 @@ export function main(csv_contents: string, samples: {[p: string] : Tone.Sampler}
         start: parseFloat(line.split(',')[4]),
         end: parseFloat(line.split(',')[5])}) as MusicNote)
 
+    noteSeries.shift()
+
     const selfNoteSeries = noteSeries.filter((note) => !note.userPlayed);
     const userNoteSeries = noteSeries.filter((note) => note.userPlayed);
 
@@ -88,14 +118,14 @@ export function main(csv_contents: string, samples: {[p: string] : Tone.Sampler}
         releaseBlueNote$ = key$('keyup', 'KeyK').pipe(map(_ => new releaseNoteKey("blue")))
 
     const addUserNote$ = from(userNoteSeries).pipe(
-        mergeMap((note) => timer((note.start - 2) * 1000).pipe(
+        mergeMap((note) => interval((note.start - 2) * 1000).pipe(
             take(1),
             map(_ => new addUserNote(note))
         ))
     )
 
     const addSelfNote$ = from(selfNoteSeries).pipe(
-        mergeMap((note) => timer(note.start * 1000).pipe(
+        mergeMap((note) => interval((note.start) * 1000).pipe(
             take(1),
             map(_ => new addSelfNote(note))
         ))
@@ -103,13 +133,13 @@ export function main(csv_contents: string, samples: {[p: string] : Tone.Sampler}
 
     // Merge all actions + note additions + tick into one mega-observable
 
-    const action$ = merge(addSelfNote$, addUserNote$, tick$);
+    const action$ = merge(addUserNote$, addSelfNote$, tick$, pressGreenNote$, pressRedNote$, pressBlueNote$, pressYellowNote$);
 
     // Accumulate and transduce the states
     const state$: Observable<State> = action$.pipe(
         scan((acc_state, new_act) => reduceState(new_act, acc_state), initialState)
     );
-    const subscription: Subscription = state$.subscribe(updateView(() => subscription.unsubscribe()));
+    const subscription: Subscription = state$.subscribe(updateView(() => subscription.unsubscribe(), randomnumber$(101), samples, svg, gameover));
 
 
 }

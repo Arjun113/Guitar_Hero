@@ -1,9 +1,9 @@
 // Canvas elements
-import { Viewport } from "./main.ts";
+import { Constants, Viewport } from "./main.ts";
 import { State, Body, MusicNote } from "./types.ts";
-import { attr, between, isNotNullOrUndefined } from "./util.ts";
+import { attr, between, isNotNullOrUndefined, playNotes } from "./util.ts";
 import * as Tone from "tone";
-import { Observable } from "rxjs";
+import { from, mergeMap, Observable, map } from "rxjs";
 export {updateView}
 
 /**
@@ -23,18 +23,8 @@ const hide = (elem: SVGGraphicsElement) =>
     elem.setAttribute("visibility", "hidden");
 
 
-function updateView (onFinish: () => void) {
+function updateView (onFinish: () => void, rand$: Observable<number>, samples: {[p: string] : Tone.Sampler}, svg: SVGGraphicsElement & HTMLElement, gameover: SVGGraphicsElement) {
     return function(s: State) {
-        console.log(s);
-        const svg = document.querySelector("#svgCanvas") as SVGGraphicsElement &
-            HTMLElement;
-        const preview = document.querySelector(
-            "#svgPreview",
-        ) as SVGGraphicsElement & HTMLElement;
-        const gameover = document.querySelector("#gameOver") as SVGGraphicsElement &
-            HTMLElement;
-        const container = document.querySelector("#main") as HTMLElement;
-
         // Text fields
         const multiplier = document.querySelector("#multiplierText") as HTMLElement;
         const scoreText = document.querySelector("#scoreText") as HTMLElement;
@@ -50,8 +40,9 @@ function updateView (onFinish: () => void) {
                 rootSVG.appendChild(v)
                 return v;
             }
+
             const v = document.getElementById(b.id) || createBodyView();
-            attr(v, { cx: b.pos.x, cy: b.pos.y });
+            attr(v, {cx: b.pos.x, cy: b.pos.y});
         };
 
         if (!svg) {
@@ -71,9 +62,7 @@ function updateView (onFinish: () => void) {
         }
 
         s.notesAuto.forEach((note) => {
-            if (between(s.time, note.start, note.end)) {
-                // Play note
-            }
+            playNotes(note)(samples, true);
         })
 
         s.shortNoteStatus.forEach((note) => updateBodyView(svg)(note.musicNote))
@@ -104,27 +93,5 @@ function updateView (onFinish: () => void) {
         }
     }
 
-    const playNotes = (musicNote: MusicNote) => (samples: {
-        [p: string]: Tone.Sampler
-    }, isTriggeredOrNot: boolean, randomNumber?: number) => {
-        if (isTriggeredOrNot) {
-            samples[musicNote.instrument].triggerAttack(
-                Tone.Frequency(musicNote.pitch, "midi").toNote(),
-                (musicNote.end - musicNote.start),
-                musicNote.velocity
-            )
-        } else {
-            samples[musicNote.instrument].triggerAttack(
-                Tone.Frequency(randomNumber, "midi").toNote(),
-                (musicNote.end - musicNote.start),
-                musicNote.velocity
-            )
-        }
-    }
-
-    const releaseNotes = (musicNote: MusicNote) => (samples: { [p: string]: Tone.Sampler }) => {
-        samples[musicNote.instrument].triggerRelease(
-            Tone.Frequency(musicNote.pitch, "midi").toNote()
-        )
-    }
 }
+

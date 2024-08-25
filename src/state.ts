@@ -10,7 +10,7 @@ import {
     Key,
     noteStatusItem,
 } from "./types.ts";
-import { between, calcNoteStartingPos, except, Vec } from "./util.ts";
+import { between, calcNoteStartingPos, cut, except, Vec } from "./util.ts";
 import { Constants, Viewport } from "./main.ts";
 import { not } from "./util.ts";
 export {initialState, Tick, pressNoteKey, addSelfNote, addUserNote, releaseNoteKey, reduceState}
@@ -57,7 +57,7 @@ class Tick implements Action {
     static moveNote = (s: State) => (noteStatusItem: noteStatusItem): noteStatusItem => ({
         ...noteStatusItem,
         musicNote: {
-            ...noteStatusItem.musicNote, pos: noteStatusItem.musicNote.pos.add(noteStatusItem.musicNote.vel.scale(1/Constants.TICK_RATE_MS))
+            ...noteStatusItem.musicNote, pos: noteStatusItem.musicNote.pos.add(noteStatusItem.musicNote.vel.scale(Constants.TICK_RATE_MS/1000))
         }
     })
 
@@ -75,7 +75,8 @@ class Tick implements Action {
             ...s,
             expiredNotes: expiredShortNotes.concat(expiredLongNotes),
             shortNoteStatus: livingShortNotes,
-            longNoteStatus: livingLongNotes
+            longNoteStatus: livingLongNotes,
+            notesAuto: []
         })
     }
 
@@ -125,7 +126,7 @@ class addSelfNote implements Action {
     constructor(public readonly note: MusicNote) {}
 
     apply = (s: State) => ({
-        ...s, notesAuto: s.notesAuto.concat(this.note)
+        ...s, notesAuto: [this.note]
     })
 }
 
@@ -134,10 +135,10 @@ class pressNoteKey implements Action {
 
     apply = (s: State): State => {
         function findNotesToPlay(keyColour: string, notesList: noteStatusItem[]): noteStatusItem[] {
-            if (keyColour == "red") {
+            if (keyColour == "green") {
                 return notesList.filter((note) => between(note.musicNote.note.pitch, 0, 32) && (s.time - note.musicNote.createTime) > 10)
             }
-            else if (keyColour == "green") {
+            else if (keyColour == "red") {
                 return notesList.filter((note) => between(note.musicNote.note.pitch, 32, 64) && (s.time - note.musicNote.createTime) > 10)
             }
             else if (keyColour == "blue") {
@@ -149,9 +150,9 @@ class pressNoteKey implements Action {
         }
 
         const playableShortNotes = findNotesToPlay(this.keyColour, s.shortNoteStatus);
-        const notPlayableShortNotes = s.shortNoteStatus.filter(not(playableShortNotes.includes));
+        const notPlayableShortNotes = cut(s.shortNoteStatus)(playableShortNotes);
         const playableLongNotes = findNotesToPlay(this.keyColour, s.longNoteStatus);
-        const notPlayableLongNotes = s.longNoteStatus.filter(not(playableShortNotes.includes));
+        const notPlayableLongNotes = cut(s.longNoteStatus)(playableLongNotes);
 
         return {...s,
                 shortNoteStatus: notPlayableShortNotes.concat(playableShortNotes.map((note) => ({playStatus: "pressed", musicNote: note.musicNote} as noteStatusItem))),
@@ -165,10 +166,10 @@ class releaseNoteKey implements Action {
     }
     apply = (s: State) => {
         function findNotesToRelease(keyColour: string, notesList: noteStatusItem[]): noteStatusItem[] {
-            if (keyColour == "red") {
+            if (keyColour == "green") {
                 return notesList.filter((note) => between(note.musicNote.note.pitch, 0, 32) && note.playStatus === "pressed");
             }
-            else if (keyColour == "green") {
+            else if (keyColour == "red") {
                 return notesList.filter((note) => between(note.musicNote.note.pitch, 32, 64) && note.playStatus === "pressed")
             }
             else if (keyColour == "blue") {

@@ -1,6 +1,7 @@
-import { Circle, ColourPos, MusicNote } from "./types.ts";
+import { Circle, ColourPos, MusicNote, Body, noteStatusItem } from "./types.ts";
 import { Note, Viewport } from "./main.ts";
-export {Vec, attr, calcNoteStartingPos, except, isNotNullOrUndefined, not, between}
+import * as Tone from "tone";
+export {Vec, attr, calcNoteStartingPos, except, isNotNullOrUndefined, not, between, RNG, playNotes, releaseNotes, cut}
 
 /**
  * A random number generator which provides two pure functions
@@ -104,3 +105,30 @@ const calcNoteStartingPos = (note: MusicNote): Circle => {
 const between = (x: number, min: number, max: number) => {
     return x >= min && x < max;
 }
+
+const playNotes = (musicNote: MusicNote) => (samples: {
+    [p: string]: Tone.Sampler
+}, isTriggeredOrNot: boolean, randomNumber?: number) => {
+    if (isTriggeredOrNot) {
+        samples[musicNote.instrument].triggerAttack(
+            Tone.Frequency(musicNote.pitch, "midi").toNote(),
+            (musicNote.end - musicNote.start),
+            musicNote.velocity / 127
+        )
+    } else {
+        samples[musicNote.instrument].triggerAttack(
+            Tone.Frequency(randomNumber, "midi").toNote(),
+            (musicNote.end - musicNote.start),
+            musicNote.velocity / 127
+        )
+    }
+}
+
+
+const releaseNotes = (musicNote: MusicNote) => (samples: { [p: string]: Tone.Sampler }) => {
+    samples[musicNote.instrument].triggerRelease(
+        Tone.Frequency(musicNote.pitch, "midi").toNote()
+    )
+}
+
+const cut = except((a: noteStatusItem) => (b: noteStatusItem) => a.musicNote.id === b.musicNote.id)
