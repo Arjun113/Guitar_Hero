@@ -24,16 +24,17 @@ import {
     Observable, of,
     Subscription,
     switchMap,
-    take,
+    take, tap,
     timer,
 } from "rxjs";
 import { map, filter, scan } from "rxjs/operators";
 import * as Tone from "tone";
 import { SampleLibrary } from "./tonejs-instruments";
-import { Key, MusicNote, NoteBallAssociation, State, Event } from "./types.ts";
-import { addSelfNote, addUserNote, initialState, pressNoteKey, reduceState, releaseNoteKey, Tick } from "./state.ts";
+import { Key, MusicNote, State, Event, noteStatusItem, KeyColour , Body} from "./types.ts";
+import { pressNoteKey, reduceState, releaseNoteKey, Tick } from "./state.ts";
 import { updateView } from "./view.ts";
 import { not, playNotes, RNG } from "./util.ts";
+import { Sampler } from "tone";
 export { Note, Viewport, Constants}
 
 /** Constants */
@@ -66,31 +67,25 @@ const tick = (s: State) => s;
  * This is the function called on page load. Your main game loop
  * should be called here.
  */
-export function main(csv_contents: string, samples: {[p: string] : Tone.Sampler}) {
+export function main(csv_contents: string, samples: { [p: string]: Sampler }) {
     const svg = document.querySelector("#svgCanvas") as SVGGraphicsElement &
         HTMLElement;
     const preview = document.querySelector(
         "#svgPreview",
     ) as SVGGraphicsElement & HTMLElement;
-    const gameover = document.querySelector("#gameOver") as SVGGraphicsElement &
-        HTMLElement;
-    const notesContainer = document.createElementNS(svg.namespaceURI, "group") as HTMLElement;
 
 
-    /** Random numbers for playback **/
-    const randomnumber$ = (seed: number) => interval(10 as number).pipe(
-        scan((acc, val) => RNG.hash(val), seed),
-        map((randnum) => RNG.scale(randnum))
-    )
 
     const key$ = (e: Event, k: Key) =>
         fromEvent<KeyboardEvent>(document, e)
             .pipe(
-                filter(({code}) => code === k),
-                filter(({repeat}) => !repeat))
+                filter(({code}) => code === k))
 
     const tick$ = interval(Constants.TICK_RATE_MS)
-        .pipe(map(elapsed => new Tick(elapsed)))
+        .pipe(
+            scan((acc, _) => acc + (Constants.TICK_RATE_MS / 1000), 0),
+            map((acc) => new Tick(acc))
+        )
 
     const lines = csv_contents.split("\n");
     const noteSeries = lines.map((line) => ({userPlayed: Boolean(line.split(',')[0] === "True"),
@@ -102,8 +97,23 @@ export function main(csv_contents: string, samples: {[p: string] : Tone.Sampler}
 
     noteSeries.shift()
 
-    const selfNoteSeries = noteSeries.filter((note) => !note.userPlayed);
-    const userNoteSeries = noteSeries.filter((note) => note.userPlayed);
+    const initialState: State = {
+        gameEnd: false,
+        multiplier: 1,
+        score: 0,
+        highscore: 0,
+        time: 0,
+        userNotes: noteSeries.filter((note) => note.userPlayed),
+        keyPressed: "" as KeyColour,
+        keyReleased: "" as KeyColour,
+        onscreenNotes: [] as noteStatusItem[],
+        expiredNotes: [] as noteStatusItem[],
+        automaticNotes: noteSeries.filter((note) => !note.userPlayed),
+        notesPlayed: 0,
+        notesMissed: 0,
+        samples: samples,
+        totalNotes: 0
+    } as const;
 
 
     /** Key actions and automated note insertions
@@ -117,30 +127,15 @@ export function main(csv_contents: string, samples: {[p: string] : Tone.Sampler}
         releaseGreenNote$ = key$('keyup', 'KeyK').pipe(map(_ => new releaseNoteKey("green"))),
         releaseBlueNote$ = key$('keyup', 'KeyK').pipe(map(_ => new releaseNoteKey("blue")))
 
-    const addUserNote$ = from(userNoteSeries).pipe(
-        mergeMap((note) => interval((note.start - 2) * 1000).pipe(
-            take(1),
-            map(_ => new addUserNote(note))
-        ))
-    )
-
-    const addSelfNote$ = from(selfNoteSeries).pipe(
-        mergeMap((note) => interval((note.start) * 1000).pipe(
-            take(1),
-            map(_ => new addSelfNote(note))
-        ))
-    )
-
     // Merge all actions + note additions + tick into one mega-observable
 
-    const action$ = merge(addUserNote$, addSelfNote$, tick$, pressGreenNote$, pressRedNote$, pressBlueNote$, pressYellowNote$);
+    const action$ = merge(tick$, pressGreenNote$, pressRedNote$, pressBlueNote$, pressYellowNote$);
 
     // Accumulate and transduce the states
     const state$: Observable<State> = action$.pipe(
         scan((acc_state, new_act) => reduceState(new_act, acc_state), initialState)
     );
-    const subscription: Subscription = state$.subscribe(updateView(() => subscription.unsubscribe(), randomnumber$(101), samples, svg, gameover));
-
+    const subscription: Subscription = state$.subscribe(updateView(() => subscription.unsubscribe(), svg));
 
 }
 
@@ -180,12 +175,12 @@ if (typeof window !== "undefined") {
             samples[instrument].toDestination();
             samples[instrument].release = 0.5;
         }
-            fetch(`${baseUrl}/assets/${Constants.SONG_NAME}.csv`)
-                .then((response) => response.text())
-                .then((text) => start_game(text))
-                .catch((error) =>
-                    console.error("Error fetching the CSV file:", error),
-                );
+        fetch(`${baseUrl}/assets/${Constants.SONG_NAME}.csv`)
+            .then((response) => response.text())
+            .then((text) => start_game(text))
+            .catch((error) =>
+                console.error("Error fetching the CSV file:", error),
+            );
     })
 }
 

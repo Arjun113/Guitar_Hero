@@ -1,6 +1,9 @@
 import { Vec } from "./util.ts";
+import {Note } from "./main.ts";
+import * as Tone from "tone";
+import { Sampler } from "tone";
 
-export type {Key, Event, MusicNote, NoteBallAssociation, State, ViewType, ObjectId, Circle, Body, ColourPos, noteStatusItem}
+export type {Key, Event, MusicNote, State, ViewType, ObjectId, Circle, Body, ColourPos, noteStatusItem, SVGGroup, KeyColour, Tail}
 export type {Action}
 
 /** User input */
@@ -8,6 +11,8 @@ export type {Action}
 type Key = "KeyH" | "KeyJ" | "KeyK" | "KeyL";
 
 type Event = "keydown" | "keyup" | "keypress";
+
+type KeyColour = "green" | "red" | "blue" | "yellow" | "";
 
 
 type MusicNote = Readonly<{
@@ -19,25 +24,36 @@ type MusicNote = Readonly<{
     end: number
 }>;
 
-type NoteBallAssociation = Readonly<{
-    note: MusicNote,
-    ball: SVGElement
-}>
-
 type State = Readonly<{
     gameEnd: boolean;
-    total_notes_user: number,
+    notesPlayed: number,
+    notesMissed: number
     multiplier: number,
     score: number,
     highscore: number,
     time: number,
-    shortNoteStatus: noteStatusItem[],
-    notesAuto: MusicNote[],
+    onscreenNotes: noteStatusItem[],
     expiredNotes: noteStatusItem[],
-    longNoteStatus: noteStatusItem[]
+    keyPressed: KeyColour | "random",
+    keyReleased: KeyColour | "random",
+    userNotes: MusicNote[],
+    automaticNotes: MusicNote[],
+    samples: { [p: string]: Sampler },
+    totalNotes: number
 }>;
 
 type Circle = Readonly<{ pos: Vec, radius: number, colour: string }>
+
+type Tail = Readonly<{
+    width: number,
+    length: number,
+    pos: Vec,
+    colour: string
+}>
+
+type SVGGroup = Readonly<{
+    svgElems: {circle: Circle, tail: Tail}
+}>
 
 /**
  * ObjectIds help us identify objects and manage objects which timeout (such as bullets)
@@ -47,7 +63,7 @@ type ObjectId = Readonly<{ id: string, createTime: number }>
 /**
  * Every object that participates in physics is a Body
  */
-type Body = Circle & ObjectId & Readonly<{
+type Body = SVGGroup & ObjectId & Readonly<{
     viewType: ViewType,
     vel: Vec,
     note: MusicNote

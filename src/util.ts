@@ -1,7 +1,10 @@
-import { Circle, ColourPos, MusicNote, Body, noteStatusItem } from "./types.ts";
+import { Circle, ColourPos, MusicNote, Body, noteStatusItem, SVGGroup, Tail } from "./types.ts";
 import { Note, Viewport } from "./main.ts";
 import * as Tone from "tone";
-export {Vec, attr, calcNoteStartingPos, except, isNotNullOrUndefined, not, between, RNG, playNotes, releaseNotes, cut}
+import { Sampler } from "tone";
+import { interval } from "rxjs";
+import { map, scan } from "rxjs/operators";
+export {Vec, attr, calcNoteStartingPos, except, isNotNullOrUndefined, not, between, RNG, playNotes, releaseNotes, cut, randomnumber$}
 
 /**
  * A random number generator which provides two pure functions
@@ -82,7 +85,7 @@ function isNotNullOrUndefined<T extends object>(input: null | undefined | T): in
 }
 
 
-const calcNoteStartingPos = (note: MusicNote): Circle => {
+const calcNoteStartingPos = (note: MusicNote): SVGGroup => {
     function calcPercentage(note: MusicNote): ColourPos {
         if (note.pitch < 32 && note.pitch >= 0) {
             return ["green", 0.2];
@@ -98,8 +101,18 @@ const calcNoteStartingPos = (note: MusicNote): Circle => {
         }
     }
 
+    function createSVGGroup (note: MusicNote, colourPos: ColourPos): SVGGroup {
+        const circle = {pos: new Vec(colourPos[1] * Viewport.CANVAS_WIDTH, 0),
+                                                    radius: Note.RADIUS, colour: colourPos[0]} as Circle
+        const line = {pos: new Vec(colourPos[1] * Viewport.CANVAS_WIDTH, 0),
+                                                    width: Note.TAIL_WIDTH, length: (note.end - note.start) * 175,
+                                                    colour: colourPos[0]} as Tail
+
+        return {svgElems: {circle: circle, tail: line}} as SVGGroup
+    }
+
     const colourPos = calcPercentage(note);
-    return {pos: new Vec(Viewport.CANVAS_WIDTH * colourPos[1], 0), radius: Note.RADIUS, colour: colourPos[0]};
+    return createSVGGroup(note, colourPos)
 }
 
 const between = (x: number, min: number, max: number) => {
@@ -113,22 +126,29 @@ const playNotes = (musicNote: MusicNote) => (samples: {
         samples[musicNote.instrument].triggerAttack(
             Tone.Frequency(musicNote.pitch, "midi").toNote(),
             (musicNote.end - musicNote.start),
-            musicNote.velocity / 127
+            musicNote.velocity
         )
     } else {
         samples[musicNote.instrument].triggerAttack(
             Tone.Frequency(randomNumber, "midi").toNote(),
             (musicNote.end - musicNote.start),
-            musicNote.velocity / 127
+            musicNote.velocity
         )
     }
 }
 
 
-const releaseNotes = (musicNote: MusicNote) => (samples: { [p: string]: Tone.Sampler }) => {
+const releaseNotes = (musicNote: MusicNote) => (samples: { [p: string]: Sampler }) => {
     samples[musicNote.instrument].triggerRelease(
         Tone.Frequency(musicNote.pitch, "midi").toNote()
     )
 }
 
 const cut = except((a: noteStatusItem) => (b: noteStatusItem) => a.musicNote.id === b.musicNote.id)
+
+
+/** Random numbers for playback **/
+const randomnumber$ = (seed: number) => interval(10 as number).pipe(
+    scan((acc, val) => RNG.hash(val), seed),
+    map((randnum) => RNG.scale(randnum))
+)
