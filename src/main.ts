@@ -46,7 +46,7 @@ const Viewport = {
 
 const Constants = {
     TICK_RATE_MS: 20,
-    SONG_NAME: "IWonder",
+    SONG_NAME: "RockinRobin",
 } as const;
 
 const Note = {

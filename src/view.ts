@@ -25,7 +25,7 @@ const hide = (elem: SVGGraphicsElement) =>
 
 function updateView (onFinish: () => void, svg: SVGGraphicsElement & HTMLElement) {
     return function(s: State) {
-        console.log(s.automaticNotes, s.userNotes, s.onscreenNotes)
+        console.log(s.automaticNotes, s.userNotes, s.onscreenNotes, s.notesMissed)
         // Text fields
         const gameover = document.querySelector("#gameOver") as SVGGraphicsElement &
             HTMLElement;
