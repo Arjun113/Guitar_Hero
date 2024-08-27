@@ -106,7 +106,7 @@ class pressNoteKey implements Action {
         }
 
         const notesInColumn = findNotesInColumn(this.keyColour);
-        const playableNotesInColumn = notesInColumn.filter((note) => between(note.musicNote.note.start - s.time, -0.02, 0.02))
+        const playableNotesInColumn = notesInColumn.filter((note) => between(note.musicNote.note.start - s.time, -0.2, 0.2))
         const unplayableNotesInColumn = cut(s.onscreenNotes)(playableNotesInColumn)
 
 
@@ -114,7 +114,8 @@ class pressNoteKey implements Action {
             ...s,
             onscreenNotes: unplayableNotesInColumn.concat(playableNotesInColumn.map((note) => ({playStatus: "pressed", musicNote: note.musicNote} as noteStatusItem))),
             keyPressed: (playableNotesInColumn.length === 0 ? (notesInColumn.length === 0 ? "random" : this.keyColour) : "" as KeyColour),
-            notesPlayed: s.notesPlayed + playableNotesInColumn.filter((note) => (note.musicNote.note.end - note.musicNote.note.start) < 1).length
+            notesPlayed: s.notesPlayed + playableNotesInColumn.filter((note) => (note.musicNote.note.end - note.musicNote.note.start) < 1).length,
+            score: s.score + playableNotesInColumn.filter((note) => (note.musicNote.note.end - note.musicNote.note.start) < 1).length
         })
     }
 }

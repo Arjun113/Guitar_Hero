@@ -47,7 +47,7 @@ function updateView (onFinish: () => void, svg: SVGGraphicsElement & HTMLElement
             function createBodyLargeView() {
                 const t = document.createElementNS(rootSVG.namespaceURI, "line") as SVGGraphicsElement;
                 attr(t, { id: b.id + "tail", x1: b.svgElems.tail.pos.x, x2: b.svgElems.tail.pos.x, y1: b.svgElems.tail.pos.y, y2: b.svgElems.tail.pos.y + b.svgElems.tail.length});
-                t.classList.add(b.svgElems.circle.colour + b.viewType + "Tail")
+                t.classList.add(b.svgElems.tail.colour + b.viewType + "Tail")
                 rootSVG.appendChild(t)
                 return t;
             }
@@ -55,7 +55,7 @@ function updateView (onFinish: () => void, svg: SVGGraphicsElement & HTMLElement
             const v = document.getElementById(b.id) || createBodySmallView();
             attr(v, {cx: b.svgElems.circle.pos.x, cy: b.svgElems.circle.pos.y});
 
-            if (b.note.end - b.note.start >= 1) {
+            if ((b.note.end - b.note.start) >= 1) {
                 const t = document.getElementById(b.id + "Tail") || createBodyLargeView()
             }
         };
@@ -123,6 +123,10 @@ function updateView (onFinish: () => void, svg: SVGGraphicsElement & HTMLElement
                     nearestNote.musicNote.note.velocity / 127
                 ))
         }
+
+        s.onscreenNotes.filter((note) => note.playStatus === "pressed").forEach((note) =>
+            playNotes(note.musicNote.note)(s.samples, true)
+        )
 
 
 
