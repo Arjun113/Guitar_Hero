@@ -14,10 +14,28 @@
 
 import "./style.css";
 
-import { fromEvent, interval, merge } from "rxjs";
+import {
+    concatMap, delay,
+    from,
+    fromEvent,
+    interval,
+    merge,
+    mergeMap,
+    Observable, of,
+    Subscription,
+    switchMap,
+    take, tap,
+    timer,
+} from "rxjs";
 import { map, filter, scan } from "rxjs/operators";
 import * as Tone from "tone";
 import { SampleLibrary } from "./tonejs-instruments";
+import { Key, MusicNote, State, Event, noteStatusItem, KeyColour , Body} from "./types.ts";
+import { pressNoteKey, reduceState, releaseNoteKey, Tick } from "./state.ts";
+import { updateView } from "./view.ts";
+import { not, playNotes, RNG } from "./util.ts";
+import { Sampler } from "tone";
+export { Note, Viewport, Constants}
 
 /** Constants */
 
@@ -27,32 +45,15 @@ const Viewport = {
 } as const;
 
 const Constants = {
-    TICK_RATE_MS: 500,
+    TICK_RATE_MS: 10,
     SONG_NAME: "RockinRobin",
 } as const;
 
 const Note = {
     RADIUS: 0.07 * Viewport.CANVAS_WIDTH,
-    TAIL_WIDTH: 10,
-};
-
-/** User input */
-
-type Key = "KeyH" | "KeyJ" | "KeyK" | "KeyL";
-
-type Event = "keydown" | "keyup" | "keypress";
-
-/** Utility functions */
-
-/** State processing */
-
-type State = Readonly<{
-    gameEnd: boolean;
-}>;
-
-const initialState: State = {
-    gameEnd: false,
+    TAIL_WIDTH: 10
 } as const;
+
 
 /**
  * Updates the state by proceeding with one time step.
@@ -62,141 +63,80 @@ const initialState: State = {
  */
 const tick = (s: State) => s;
 
-/** Rendering (side effects) */
-
-/**
- * Displays a SVG element on the canvas. Brings to foreground.
- * @param elem SVG element to display
- */
-const show = (elem: SVGGraphicsElement) => {
-    elem.setAttribute("visibility", "visible");
-    elem.parentNode!.appendChild(elem);
-};
-
-/**
- * Hides a SVG element on the canvas.
- * @param elem SVG element to hide
- */
-const hide = (elem: SVGGraphicsElement) =>
-    elem.setAttribute("visibility", "hidden");
-
-/**
- * Creates an SVG element with the given properties.
- *
- * See https://developer.mozilla.org/en-US/docs/Web/SVG/Element for valid
- * element names and properties.
- *
- * @param namespace Namespace of the SVG element
- * @param name SVGElement name
- * @param props Properties to set on the SVG element
- * @returns SVG element
- */
-const createSvgElement = (
-    namespace: string | null,
-    name: string,
-    props: Record<string, string> = {},
-) => {
-    const elem = document.createElementNS(namespace, name) as SVGElement;
-    Object.entries(props).forEach(([k, v]) => elem.setAttribute(k, v));
-    return elem;
-};
-
 /**
  * This is the function called on page load. Your main game loop
  * should be called here.
  */
-export function main(
-    csvContents: string,
-    samples: { [key: string]: Tone.Sampler },
-) {
-    // Canvas elements
+export function main(csv_contents: string, samples: { [p: string]: Sampler }) {
     const svg = document.querySelector("#svgCanvas") as SVGGraphicsElement &
         HTMLElement;
     const preview = document.querySelector(
         "#svgPreview",
     ) as SVGGraphicsElement & HTMLElement;
-    const gameover = document.querySelector("#gameOver") as SVGGraphicsElement &
-        HTMLElement;
-    const container = document.querySelector("#main") as HTMLElement;
 
-    svg.setAttribute("height", `${Viewport.CANVAS_HEIGHT}`);
-    svg.setAttribute("width", `${Viewport.CANVAS_WIDTH}`);
 
-    // Text fields
-    const multiplier = document.querySelector("#multiplierText") as HTMLElement;
-    const scoreText = document.querySelector("#scoreText") as HTMLElement;
-    const highScoreText = document.querySelector(
-        "#highScoreText",
-    ) as HTMLElement;
 
-    /** User input */
+    const key$ = (e: Event, k: Key) =>
+        fromEvent<KeyboardEvent>(document, e)
+            .pipe(
+                filter(({code}) => code === k))
 
-    const key$ = fromEvent<KeyboardEvent>(document, "keypress");
+    const tick$ = interval(Constants.TICK_RATE_MS)
+        .pipe(
+            scan((acc, _) => acc + (Constants.TICK_RATE_MS / 1000), 0),
+            map((acc) => new Tick(acc))
+        )
 
-    const fromKey = (keyCode: Key) =>
-        key$.pipe(filter(({ code }) => code === keyCode));
+    const lines = csv_contents.split("\n");
+    const noteSeries = lines.map((line) => ({userPlayed: Boolean(line.split(',')[0] === "True"),
+        instrument: line.split(',')[1],
+        velocity: parseFloat(line.split(',')[2]),
+        pitch: parseFloat(line.split(',')[3]),
+        start: parseFloat(line.split(',')[4]),
+        end: parseFloat(line.split(',')[5])}) as MusicNote)
 
-    /** Determines the rate of time steps */
-    const tick$ = interval(Constants.TICK_RATE_MS);
+    noteSeries.shift()
 
-    /**
-     * Renders the current state to the canvas.
-     *
-     * In MVC terms, this updates the View using the Model.
-     *
-     * @param s Current state
+    const initialState: State = {
+        gameEnd: false,
+        multiplier: 1,
+        score: 0,
+        highscore: 0,
+        time: 0,
+        userNotes: noteSeries.filter((note) => note.userPlayed),
+        keyPressed: "" as KeyColour,
+        keyReleased: "" as KeyColour,
+        onscreenNotes: [] as noteStatusItem[],
+        expiredNotes: [] as noteStatusItem[],
+        automaticNotes: noteSeries.filter((note) => !note.userPlayed),
+        notesPlayed: 0,
+        notesMissed: 0,
+        samples: samples,
+        totalNotes: 0
+    } as const;
+
+
+    /** Key actions and automated note insertions
      */
-    const render = (s: State) => {
-        // Add blocks to the main grid canvas
-        const greenCircle = createSvgElement(svg.namespaceURI, "circle", {
-            r: `${Note.RADIUS}`,
-            cx: "20%",
-            cy: "200",
-            style: "fill: green",
-            class: "shadow",
-        });
+    const pressRedNote$ = key$('keydown', 'KeyH').pipe(map(_ => new pressNoteKey("red"))),
+        pressGreenNote$ = key$('keydown', 'KeyJ').pipe(map(_ => new pressNoteKey("green"))),
+        pressYellowNote$ = key$('keydown', 'KeyL').pipe(map(_ => new pressNoteKey("yellow"))),
+        pressBlueNote$ = key$('keydown', 'KeyK').pipe(map(_ => new pressNoteKey("blue"))),
+        releaseRedNote$ = key$('keyup', 'KeyH').pipe(map(_ => new releaseNoteKey("red"))),
+        releaseYellowNote$ = key$('keyup', 'KeyL').pipe(map(_ => new releaseNoteKey("yellow"))),
+        releaseGreenNote$ = key$('keyup', 'KeyK').pipe(map(_ => new releaseNoteKey("green"))),
+        releaseBlueNote$ = key$('keyup', 'KeyK').pipe(map(_ => new releaseNoteKey("blue")))
 
-        const redCircle = createSvgElement(svg.namespaceURI, "circle", {
-            r: `${Note.RADIUS}`,
-            cx: "40%",
-            cy: "50",
-            style: "fill: red",
-            class: "shadow",
-        });
+    // Merge all actions + note additions + tick into one mega-observable
 
-        const blueCircle = createSvgElement(svg.namespaceURI, "circle", {
-            r: `${Note.RADIUS}`,
-            cx: "60%",
-            cy: "50",
-            style: "fill: blue",
-            class: "shadow",
-        });
+    const action$ = merge(tick$, pressGreenNote$, pressRedNote$, pressBlueNote$, pressYellowNote$);
 
-        const yellowCircle = createSvgElement(svg.namespaceURI, "circle", {
-            r: `${Note.RADIUS}`,
-            cx: "80%",
-            cy: "50",
-            style: "fill: yellow",
-            class: "shadow",
-        });
+    // Accumulate and transduce the states
+    const state$: Observable<State> = action$.pipe(
+        scan((acc_state, new_act) => reduceState(new_act, acc_state), initialState)
+    );
+    const subscription: Subscription = state$.subscribe(updateView(() => subscription.unsubscribe(), svg));
 
-        svg.appendChild(greenCircle);
-        svg.appendChild(redCircle);
-        svg.appendChild(blueCircle);
-        svg.appendChild(yellowCircle);
-    };
-
-    const source$ = tick$
-        .pipe(scan((s: State) => ({ gameEnd: false }), initialState))
-        .subscribe((s: State) => {
-            render(s);
-
-            if (s.gameEnd) {
-                show(gameover);
-            } else {
-                hide(gameover);
-            }
-        });
 }
 
 // The following simply runs your main function on window load.  Make sure to leave it in place.
@@ -216,7 +156,8 @@ if (typeof window !== "undefined") {
         baseUrl: "samples/",
     });
 
-    const startGame = (contents: string) => {
+
+    const start_game = (contents: string) => {
         document.body.addEventListener(
             "mousedown",
             function () {
@@ -234,12 +175,12 @@ if (typeof window !== "undefined") {
             samples[instrument].toDestination();
             samples[instrument].release = 0.5;
         }
-
         fetch(`${baseUrl}/assets/${Constants.SONG_NAME}.csv`)
             .then((response) => response.text())
-            .then((text) => startGame(text))
+            .then((text) => start_game(text))
             .catch((error) =>
                 console.error("Error fetching the CSV file:", error),
             );
-    });
+    })
 }
+
