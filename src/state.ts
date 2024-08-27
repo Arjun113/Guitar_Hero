@@ -38,9 +38,9 @@ class Tick implements Action {
     apply = (s: State): State => Tick.noteManagement({
         ...s, onscreenNotes: s.onscreenNotes.map((note) => ({playStatus: note.playStatus, musicNote:Tick.moveBody(note.musicNote)} as noteStatusItem)),
         expiredNotes: [] as Readonly<noteStatusItem>[], gameEnd: (s.automaticNotes.length === 0 && s.userNotes.length === 0 && s.onscreenNotes.length === 0),
-        automaticNotes: s.automaticNotes.filter((note) => s.time < note.start),
         keyPressed: "" as KeyColour, keyReleased: "" as KeyColour,
-        time: this.timeElapsed
+        time: this.timeElapsed,
+        automaticNotes: s.automaticNotes.filter((note) => note.playStatus !== "pressed")
     })
 
     /**
@@ -62,22 +62,29 @@ class Tick implements Action {
 
         const numberOfNewObjects = newShortNoteBodies.length
 
+
         const newLongNoteBodies = newUserNotes.filter((note) => (note.end - note.start) >= 1).map(
             (note, i) => createSmallNote({id: (s.totalNotes + i + numberOfNewObjects).toString(), createTime: s.time} as ObjectId)
             (calcNoteStartingPos(note))(note)(new Vec(0, 175))).map((body) => ({playStatus: "ready", musicNote: body} as noteStatusItem))
 
         const expiredNotes = s.onscreenNotes.filter((note) => s.time > note.musicNote.note.end)
+        const playedNotes = s.onscreenNotes.filter((note) => note.playStatus === "pressed")
+        const readyAutomaticNotes = s.automaticNotes.filter((note) =>
+            note.playStatus === "ready" && note.note.start <= s.time)
 
-        const cutNotes = except((a: MusicNote) => (b: MusicNote) => a === b)
-        const unplayableUserNotes = cutNotes(s.userNotes)(newUserNotes)
-        const unexpiredOnscreenNotes = cut(s.onscreenNotes)(expiredNotes)
+        const cutMusicNotes = except((a: MusicNote) => (b: MusicNote) => a === b)
+        const cutAutoNotes = except((a: {playStatus: string, note: MusicNote}) => (b: {playStatus: string, note: MusicNote}) => a === b)
+        const unplayableUserNotes = cutMusicNotes(s.userNotes)(newUserNotes)
+        const unexpiredOnscreenNotes = cut(cut(s.onscreenNotes)(expiredNotes))(playedNotes)
 
         return ({
             ...s, onscreenNotes: unexpiredOnscreenNotes.concat(newShortNoteBodies, newLongNoteBodies), userNotes: unplayableUserNotes,
             notesMissed: s.notesMissed + expiredNotes.filter((note) => note.playStatus === "ready").length,
-            highscore: s.score > s.highscore ? s.score : s.highscore,
-            expiredNotes: expiredNotes,
-            totalNotes: s.totalNotes + newShortNoteBodies.length + newLongNoteBodies.length
+            highscore: (s.score > s.highscore) ? s.score : s.highscore,
+            expiredNotes: expiredNotes.concat(playedNotes),
+            totalNotes: s.totalNotes + newShortNoteBodies.length + newLongNoteBodies.length,
+            automaticNotes: cutAutoNotes(s.automaticNotes)(readyAutomaticNotes).concat(readyAutomaticNotes.map(
+                (note) => ({playStatus: "pressed", note: note.note})))
         })
 
 

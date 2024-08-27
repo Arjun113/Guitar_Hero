@@ -25,9 +25,9 @@ abstract class RNG {
     public static hash = (seed: number) => (RNG.a * seed + RNG.c) % RNG.m;
 
     /**
-     h    * Takes hash value and scales it to the range [-1, 1]
+     h    * Takes hash value and scales it to the range [0, 1]
      */
-    public static scale = (hash: number) => (2 * hash) / (RNG.m - 1) - 1;
+    public static scale = (hash: number) => (2 * hash) / (RNG.m - 1) /2;
 }
 
 /**
@@ -123,16 +123,18 @@ const playNotes = (musicNote: MusicNote) => (samples: {
     [p: string]: Tone.Sampler
 }, isTriggeredOrNot: boolean, randomNumber?: number) => {
     if (isTriggeredOrNot) {
-        samples[musicNote.instrument].triggerAttack(
+        samples[musicNote.instrument].triggerAttackRelease(
             Tone.Frequency(musicNote.pitch, "midi").toNote(),
             (musicNote.end - musicNote.start),
-            musicNote.velocity
+            undefined,
+            musicNote.velocity / 127
         )
-    } else {
-        samples[musicNote.instrument].triggerAttack(
+    } else if (!isTriggeredOrNot && randomNumber !== undefined) {
+        samples[musicNote.instrument].triggerAttackRelease(
             Tone.Frequency(randomNumber, "midi").toNote(),
-            (musicNote.end - musicNote.start),
-            musicNote.velocity
+            randomNumber,
+            undefined,
+            musicNote.velocity / 127
         )
     }
 }

@@ -37,7 +37,7 @@ type State = Readonly<{
     keyPressed: KeyColour | "random",
     keyReleased: KeyColour | "random",
     userNotes: MusicNote[],
-    automaticNotes: MusicNote[],
+    automaticNotes: {playStatus: string, note: MusicNote}[],
     samples: { [p: string]: Sampler },
     totalNotes: number
 }>;

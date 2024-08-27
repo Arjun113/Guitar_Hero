@@ -25,7 +25,7 @@ const hide = (elem: SVGGraphicsElement) =>
 
 function updateView (onFinish: () => void, svg: SVGGraphicsElement & HTMLElement) {
     return function(s: State) {
-        console.log(s.onscreenNotes)
+        console.log(s.automaticNotes.filter((note) => note.playStatus === "pressed"))
         // Text fields
         const gameover = document.querySelector("#gameOver") as SVGGraphicsElement &
             HTMLElement;
@@ -46,7 +46,7 @@ function updateView (onFinish: () => void, svg: SVGGraphicsElement & HTMLElement
 
             function createBodyLargeView() {
                 const t = document.createElementNS(rootSVG.namespaceURI, "line") as SVGGraphicsElement;
-                attr(t, { id: b.id + "tail", x1: b.svgElems.tail.pos.x, x2: b.svgElems.tail.pos.x, y1: b.svgElems.tail.pos.y, y2: b.svgElems.tail.pos.y + b.svgElems.tail.length});
+                attr(t, { id: b.id + "Tail", x1: b.svgElems.tail.pos.x, x2: b.svgElems.tail.pos.x, y1: b.svgElems.tail.pos.y, y2: b.svgElems.tail.pos.y + b.svgElems.tail.length});
                 t.classList.add(b.svgElems.tail.colour + b.viewType + "Tail")
                 rootSVG.appendChild(t)
                 return t;
@@ -76,9 +76,9 @@ function updateView (onFinish: () => void, svg: SVGGraphicsElement & HTMLElement
             highScoreText.innerText = s.highscore.toString();
         }
 
-        s.automaticNotes.forEach((note) => {
-            if (between(note.start, s.time, s.time + Constants.TICK_RATE_MS / 1000)) {
-                playNotes(note)(s.samples, true)
+        s.automaticNotes.map((note) => {
+            if (note.playStatus === "pressed") {
+                playNotes(note.note)(s.samples, true)
             }
             }
         )
@@ -87,8 +87,9 @@ function updateView (onFinish: () => void, svg: SVGGraphicsElement & HTMLElement
 
         if (s.keyPressed === "random") {
             randomnumber$(101).pipe(take(1)).subscribe(
-                (randomNum) => s.samples["piano"].triggerAttack(
-                    Tone.Frequency(Number(randomNum * 127), "midi").toNote(),
+                (randomNum) => s.samples["piano"].triggerAttackRelease(
+                    Tone.Frequency( Math.round(69 + 12 * Math.log2(randomNum * 127 / 440)), "midi").toNote(),
+                    0.2,
                     undefined,
                     0.5
                 )
@@ -117,17 +118,17 @@ function updateView (onFinish: () => void, svg: SVGGraphicsElement & HTMLElement
             )
 
             randomnumber$(101).pipe(take(1)).subscribe(
-                (randomNum) => s.samples[nearestNote.musicNote.note.instrument].triggerAttack(
+                (randomNum) => s.samples[nearestNote.musicNote.note.instrument].triggerAttackRelease(
                     Tone.Frequency(nearestNote.musicNote.note.pitch, "midi").toNote(),
-                    randomNum / 2,
+                    randomNum,
+                    undefined,
                     nearestNote.musicNote.note.velocity / 127
                 ))
         }
 
-        s.onscreenNotes.filter((note) => note.playStatus === "pressed").forEach((note) =>
+        s.onscreenNotes.filter((note) => note.playStatus === "pressed").map((note) =>
             playNotes(note.musicNote.note)(s.samples, true)
         )
-
 
 
         s.expiredNotes.map(o => document.getElementById(o.musicNote.id))
@@ -141,8 +142,19 @@ function updateView (onFinish: () => void, svg: SVGGraphicsElement & HTMLElement
                 }
             })
 
+        s.expiredNotes.map(o => document.getElementById(o.musicNote.id + "Tail")).filter(
+            isNotNullOrUndefined).forEach(v => {
+                try {
+                    svg.removeChild(v)
+                } catch (e) {
+                    console.log("Already removed: " + v.id)
+                }
+            }
+        )
+
         if (s.gameEnd) {
             show(gameover);
+            onFinish();
         }
     }
 

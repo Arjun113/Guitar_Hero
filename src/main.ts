@@ -108,7 +108,8 @@ export function main(csv_contents: string, samples: { [p: string]: Sampler }) {
         keyReleased: "" as KeyColour,
         onscreenNotes: [] as noteStatusItem[],
         expiredNotes: [] as noteStatusItem[],
-        automaticNotes: noteSeries.filter((note) => !note.userPlayed),
+        automaticNotes: noteSeries.filter((note) => !note.userPlayed)
+            .map((note) => ({playStatus: "ready", note: note})),
         notesPlayed: 0,
         notesMissed: 0,
         samples: samples,
@@ -129,7 +130,7 @@ export function main(csv_contents: string, samples: { [p: string]: Sampler }) {
 
     // Merge all actions + note additions + tick into one mega-observable
 
-    const action$ = merge(tick$, pressGreenNote$, pressRedNote$, pressBlueNote$, pressYellowNote$);
+    const action$ = merge(tick$, pressGreenNote$, pressRedNote$, pressBlueNote$, pressYellowNote$, releaseYellowNote$, releaseGreenNote$, releaseRedNote$, releaseBlueNote$);
 
     // Accumulate and transduce the states
     const state$: Observable<State> = action$.pipe(
