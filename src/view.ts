@@ -1,7 +1,7 @@
 // Canvas elements
 import { Constants, Viewport } from "./main.ts";
 import { State, Body, MusicNote, KeyColour, noteStatusItem } from "./types.ts";
-import { attr, between, isNotNullOrUndefined, playNotes, randomnumber$ } from "./util.ts";
+import { attr, between, isNotNullOrUndefined, playNotes, randomnumber$, releaseNotes } from "./util.ts";
 import * as Tone from "tone";
 import { from, mergeMap, Observable, map, take } from "rxjs";
 export {updateView}
@@ -25,7 +25,7 @@ const hide = (elem: SVGGraphicsElement) =>
 
 function updateView (onFinish: () => void, svg: SVGGraphicsElement & HTMLElement) {
     return function(s: State) {
-        console.log(s.automaticNotes.filter((note) => note.playStatus === "pressed"))
+        console.log(s.automaticNotes, s.userNotes, s.onscreenNotes)
         // Text fields
         const gameover = document.querySelector("#gameOver") as SVGGraphicsElement &
             HTMLElement;
@@ -46,7 +46,7 @@ function updateView (onFinish: () => void, svg: SVGGraphicsElement & HTMLElement
 
             function createBodyLargeView() {
                 const t = document.createElementNS(rootSVG.namespaceURI, "line") as SVGGraphicsElement;
-                attr(t, { id: b.id + "Tail", x1: b.svgElems.tail.pos.x, x2: b.svgElems.tail.pos.x, y1: b.svgElems.tail.pos.y, y2: b.svgElems.tail.pos.y + b.svgElems.tail.length});
+                attr(t, { id: b.id + "Tail"});
                 t.classList.add(b.svgElems.tail.colour + b.viewType + "Tail")
                 rootSVG.appendChild(t)
                 return t;
@@ -57,6 +57,7 @@ function updateView (onFinish: () => void, svg: SVGGraphicsElement & HTMLElement
 
             if ((b.note.end - b.note.start) >= 1) {
                 const t = document.getElementById(b.id + "Tail") || createBodyLargeView()
+                attr(t, {x1: b.svgElems.tail.pos.x, x2: b.svgElems.tail.pos.x, y2: b.svgElems.tail.pos.y, y1: b.svgElems.tail.pos.y - b.svgElems.tail.length})
             }
         };
 
@@ -130,6 +131,8 @@ function updateView (onFinish: () => void, svg: SVGGraphicsElement & HTMLElement
             playNotes(note.musicNote.note)(s.samples, true)
         )
 
+        s.onscreenNotes.filter((note) => note.playStatus === "released").map((note) =>
+            releaseNotes(note.musicNote.note)(s.samples))
 
         s.expiredNotes.map(o => document.getElementById(o.musicNote.id))
             .filter(isNotNullOrUndefined)

@@ -39,7 +39,8 @@ type State = Readonly<{
     userNotes: MusicNote[],
     automaticNotes: {playStatus: string, note: MusicNote}[],
     samples: { [p: string]: Sampler },
-    totalNotes: number
+    totalNotes: number,
+    simultaneousNotes: number
 }>;
 
 type Circle = Readonly<{ pos: Vec, radius: number, colour: string }>

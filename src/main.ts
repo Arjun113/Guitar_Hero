@@ -45,8 +45,8 @@ const Viewport = {
 } as const;
 
 const Constants = {
-    TICK_RATE_MS: 10,
-    SONG_NAME: "RockinRobin",
+    TICK_RATE_MS: 20,
+    SONG_NAME: "IWonder",
 } as const;
 
 const Note = {
@@ -79,7 +79,8 @@ export function main(csv_contents: string, samples: { [p: string]: Sampler }) {
     const key$ = (e: Event, k: Key) =>
         fromEvent<KeyboardEvent>(document, e)
             .pipe(
-                filter(({code}) => code === k))
+                filter(({code}) => code === k),
+                filter(({repeat}) => !repeat))
 
     const tick$ = interval(Constants.TICK_RATE_MS)
         .pipe(
@@ -113,19 +114,20 @@ export function main(csv_contents: string, samples: { [p: string]: Sampler }) {
         notesPlayed: 0,
         notesMissed: 0,
         samples: samples,
-        totalNotes: 0
+        totalNotes: 0,
+        simultaneousNotes: 0
     } as const;
 
 
     /** Key actions and automated note insertions
      */
-    const pressRedNote$ = key$('keydown', 'KeyH').pipe(map(_ => new pressNoteKey("red"))),
-        pressGreenNote$ = key$('keydown', 'KeyJ').pipe(map(_ => new pressNoteKey("green"))),
+    const pressRedNote$ = key$('keydown', 'KeyJ').pipe(map(_ => new pressNoteKey("red"))),
+        pressGreenNote$ = key$('keydown', 'KeyH').pipe(map(_ => new pressNoteKey("green"))),
         pressYellowNote$ = key$('keydown', 'KeyL').pipe(map(_ => new pressNoteKey("yellow"))),
         pressBlueNote$ = key$('keydown', 'KeyK').pipe(map(_ => new pressNoteKey("blue"))),
-        releaseRedNote$ = key$('keyup', 'KeyH').pipe(map(_ => new releaseNoteKey("red"))),
+        releaseRedNote$ = key$('keyup', 'KeyJ').pipe(map(_ => new releaseNoteKey("red"))),
         releaseYellowNote$ = key$('keyup', 'KeyL').pipe(map(_ => new releaseNoteKey("yellow"))),
-        releaseGreenNote$ = key$('keyup', 'KeyK').pipe(map(_ => new releaseNoteKey("green"))),
+        releaseGreenNote$ = key$('keyup', 'KeyH').pipe(map(_ => new releaseNoteKey("green"))),
         releaseBlueNote$ = key$('keyup', 'KeyK').pipe(map(_ => new releaseNoteKey("blue")))
 
     // Merge all actions + note additions + tick into one mega-observable

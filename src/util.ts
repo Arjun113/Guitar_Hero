@@ -85,7 +85,7 @@ function isNotNullOrUndefined<T extends object>(input: null | undefined | T): in
 }
 
 
-const calcNoteStartingPos = (note: MusicNote): SVGGroup => {
+const calcNoteStartingPos = (note: MusicNote) => (time: number): SVGGroup => {
     function calcPercentage(note: MusicNote): ColourPos {
         if (note.pitch < 32 && note.pitch >= 0) {
             return ["green", 0.2];
@@ -101,10 +101,10 @@ const calcNoteStartingPos = (note: MusicNote): SVGGroup => {
         }
     }
 
-    function createSVGGroup (note: MusicNote, colourPos: ColourPos): SVGGroup {
-        const circle = {pos: new Vec(colourPos[1] * Viewport.CANVAS_WIDTH, 0),
+    function createSVGGroup (note: MusicNote, colourPos: ColourPos, time: number): SVGGroup {
+        const circle = {pos: new Vec(colourPos[1] * Viewport.CANVAS_WIDTH, (note.start - time) * 175 - 350),
                                                     radius: Note.RADIUS, colour: colourPos[0]} as Circle
-        const line = {pos: new Vec(colourPos[1] * Viewport.CANVAS_WIDTH, 0),
+        const line = {pos: new Vec(colourPos[1] * Viewport.CANVAS_WIDTH, (note.start - time) * 175 - 350),
                                                     width: Note.TAIL_WIDTH, length: (note.end - note.start) * 175,
                                                     colour: colourPos[0]} as Tail
 
@@ -112,7 +112,7 @@ const calcNoteStartingPos = (note: MusicNote): SVGGroup => {
     }
 
     const colourPos = calcPercentage(note);
-    return createSVGGroup(note, colourPos)
+    return createSVGGroup(note, colourPos, time)
 }
 
 const between = (x: number, min: number, max: number) => {
