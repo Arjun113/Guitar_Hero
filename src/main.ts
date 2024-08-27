@@ -31,11 +31,11 @@ import { map, filter, scan } from "rxjs/operators";
 import * as Tone from "tone";
 import { SampleLibrary } from "./tonejs-instruments";
 import { Key, MusicNote, State, Event, noteStatusItem, KeyColour , Body} from "./types.ts";
-import { pressNoteKey, reduceState, releaseNoteKey, Tick } from "./state.ts";
+import { pressNoteKey, reduceState, releaseNoteKey, Tick, switchSong } from "./state.ts";
 import { updateView } from "./view.ts";
 import { not, playNotes, RNG } from "./util.ts";
 import { Sampler } from "tone";
-export { Note, Viewport, Constants}
+export { Note, Viewport, Constants, loadSong}
 
 /** Constants */
 
@@ -45,8 +45,9 @@ const Viewport = {
 } as const;
 
 const Constants = {
-    TICK_RATE_MS: 20,
-    SONG_NAME: "RockinRobin",
+    TICK_RATE_MS: 10,
+    SONG_NAME: ["RockinRobin", "IWonder", "Runaway"],
+    STARTING_SONG_INDEX: 1
 } as const;
 
 const Note = {
@@ -54,20 +55,27 @@ const Note = {
     TAIL_WIDTH: 10
 } as const;
 
+const loadSong = (songIndex: number, csvContents: string[]) => {
+    const lines = csvContents[songIndex].split("\n");
+    const noteSeries = lines.map((line) => ({
+        userPlayed: Boolean(line.split(',')[0] === "True"),
+        instrument: line.split(',')[1],
+        velocity: parseFloat(line.split(',')[2]),
+        pitch: parseFloat(line.split(',')[3]),
+        start: parseFloat(line.split(',')[4]),
+        end: parseFloat(line.split(',')[5])
+    }) as MusicNote);
 
-/**
- * Updates the state by proceeding with one time step.
- *
- * @param s Current state
- * @returns Updated state
- */
-const tick = (s: State) => s;
+    noteSeries.shift(); // Remove header or empty line
+
+    return noteSeries;
+}
 
 /**
  * This is the function called on page load. Your main game loop
  * should be called here.
  */
-export function main(csv_contents: string, samples: { [p: string]: Sampler }) {
+export function main(csv_contents: string[], samples: { [p: string]: Sampler }) {
     const svg = document.querySelector("#svgCanvas") as SVGGraphicsElement &
         HTMLElement;
     const preview = document.querySelector(
@@ -88,34 +96,26 @@ export function main(csv_contents: string, samples: { [p: string]: Sampler }) {
             map((acc) => new Tick(acc))
         )
 
-    const lines = csv_contents.split("\n");
-    const noteSeries = lines.map((line) => ({userPlayed: Boolean(line.split(',')[0] === "True"),
-        instrument: line.split(',')[1],
-        velocity: parseFloat(line.split(',')[2]),
-        pitch: parseFloat(line.split(',')[3]),
-        start: parseFloat(line.split(',')[4]),
-        end: parseFloat(line.split(',')[5])}) as MusicNote)
-
-    noteSeries.shift()
-
     const initialState: State = {
         gameEnd: false,
         multiplier: 1,
         score: 0,
         highscore: 0,
         time: 0,
-        userNotes: noteSeries.filter((note) => note.userPlayed),
+        userNotes: loadSong(Constants.STARTING_SONG_INDEX, csv_contents).filter((note) => note.userPlayed),
         keyPressed: "" as KeyColour,
         keyReleased: "" as KeyColour,
         onscreenNotes: [] as noteStatusItem[],
         expiredNotes: [] as noteStatusItem[],
-        automaticNotes: noteSeries.filter((note) => !note.userPlayed)
+        automaticNotes: loadSong(Constants.STARTING_SONG_INDEX, csv_contents).filter((note) => !note.userPlayed)
             .map((note) => ({playStatus: "ready", note: note})),
         notesPlayed: 0,
         notesMissed: 0,
         samples: samples,
         totalNotes: 0,
-        simultaneousNotes: 0
+        simultaneousNotes: 0,
+        lastResetTime: 0,
+        currentSongIndex: Constants.STARTING_SONG_INDEX
     } as const;
 
 
@@ -128,11 +128,15 @@ export function main(csv_contents: string, samples: { [p: string]: Sampler }) {
         releaseRedNote$ = key$('keyup', 'KeyJ').pipe(map(_ => new releaseNoteKey("red"))),
         releaseYellowNote$ = key$('keyup', 'KeyL').pipe(map(_ => new releaseNoteKey("yellow"))),
         releaseGreenNote$ = key$('keyup', 'KeyH').pipe(map(_ => new releaseNoteKey("green"))),
-        releaseBlueNote$ = key$('keyup', 'KeyK').pipe(map(_ => new releaseNoteKey("blue")))
+        releaseBlueNote$ = key$('keyup', 'KeyK').pipe(map(_ => new releaseNoteKey("blue"))),
+        switchToLeftSong$ = key$("keydown", 'ArrowLeft').pipe(map(_ => new switchSong("previous", csv_contents))),
+        switchToRightSong$ = key$("keyup", 'ArrowRight').pipe(map(_ => new switchSong("next", csv_contents))
+        )
 
     // Merge all actions + note additions + tick into one mega-observable
 
-    const action$ = merge(tick$, pressGreenNote$, pressRedNote$, pressBlueNote$, pressYellowNote$, releaseYellowNote$, releaseGreenNote$, releaseRedNote$, releaseBlueNote$);
+    const action$ = merge(tick$, pressGreenNote$, pressRedNote$, pressBlueNote$, pressYellowNote$,
+        releaseYellowNote$, releaseGreenNote$, releaseRedNote$, releaseBlueNote$, switchToRightSong$, switchToLeftSong$);
 
     // Accumulate and transduce the states
     const state$: Observable<State> = action$.pipe(
@@ -140,6 +144,24 @@ export function main(csv_contents: string, samples: { [p: string]: Sampler }) {
     );
     const subscription: Subscription = state$.subscribe(updateView(() => subscription.unsubscribe(), svg));
 
+}
+
+function showKeys() {
+    function showKey(k: Key) {
+        const arrowKey = document.getElementById(k)
+        // getElement might be null, in this case return without doing anything
+        if (!arrowKey) return
+        const o = (e: Event) => fromEvent<KeyboardEvent>(document, e).pipe(
+            filter(({ code }) => code === k))
+        o('keydown').subscribe(e => arrowKey.classList.add("highlight"))
+        o('keyup').subscribe(_ => arrowKey.classList.remove("highlight"))
+    }
+    showKey('ArrowLeft');
+    showKey('ArrowRight');
+    showKey('KeyH');
+    showKey('KeyL');
+    showKey("KeyK");
+    showKey('KeyJ');
 }
 
 // The following simply runs your main function on window load.  Make sure to leave it in place.
@@ -160,11 +182,12 @@ if (typeof window !== "undefined") {
     });
 
 
-    const start_game = (contents: string) => {
+    const start_game = (contents: string[]) => {
         document.body.addEventListener(
             "mousedown",
             function () {
                 main(contents, samples);
+                showKeys()
             },
             { once: true },
         );
@@ -178,11 +201,13 @@ if (typeof window !== "undefined") {
             samples[instrument].toDestination();
             samples[instrument].release = 0.5;
         }
-        fetch(`${baseUrl}/assets/${Constants.SONG_NAME}.csv`)
-            .then((response) => response.text())
-            .then((text) => start_game(text))
+        Promise.all(Constants.SONG_NAME.map(songName =>
+            fetch(`${baseUrl}/assets/${songName}.csv`)
+                .then((response) => response.text())
+        ))
+            .then((contentsArray) => start_game(contentsArray))
             .catch((error) =>
-                console.error("Error fetching the CSV file:", error),
+                console.error("Error fetching the CSV files:", error),
             );
     })
 }

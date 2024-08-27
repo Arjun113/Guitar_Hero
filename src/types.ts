@@ -3,16 +3,18 @@ import {Note } from "./main.ts";
 import * as Tone from "tone";
 import { Sampler } from "tone";
 
-export type {Key, Event, MusicNote, State, ViewType, ObjectId, Circle, Body, ColourPos, noteStatusItem, SVGGroup, KeyColour, Tail}
+export type {Key, Event, MusicNote, State, ViewType, ObjectId, Circle, Body, ColourPos, noteStatusItem, SVGGroup, KeyColour, Tail, SongSwitchWays}
 export type {Action}
 
 /** User input */
 
-type Key = "KeyH" | "KeyJ" | "KeyK" | "KeyL";
+type Key = "KeyH" | "KeyJ" | "KeyK" | "KeyL" | "ArrowLeft" | "ArrowRight";
 
 type Event = "keydown" | "keyup" | "keypress";
 
 type KeyColour = "green" | "red" | "blue" | "yellow" | "";
+
+type SongSwitchWays = "previous" | "next"
 
 
 type MusicNote = Readonly<{
@@ -40,7 +42,9 @@ type State = Readonly<{
     automaticNotes: {playStatus: string, note: MusicNote}[],
     samples: { [p: string]: Sampler },
     totalNotes: number,
-    simultaneousNotes: number
+    simultaneousNotes: number,
+    lastResetTime: number,
+    currentSongIndex: number
 }>;
 
 type Circle = Readonly<{ pos: Vec, radius: number, colour: string }>

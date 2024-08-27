@@ -53,13 +53,28 @@
                 stroke: yellow;
                 stroke-width: 10;
             }
+            .key {
+                width: 18px;
+                text-align: center;
+                border-radius: 3px;
+                background-color: lightgray;
+            }
+
+            .highlight {
+                background-color: pink;
+            }
+
+            div#controls {
+                float: right;
+                margin: 0px;
+            }
         </style>
 
         <title>FIT2102 A1 2023</title>
     </head>
     <body>
         <h1>Guitar Hero</h1>
-        <main id="main" class="flex row">
+        <main id="main" class="flex col">
             <svg id="svgCanvas" viewBox="0 0 200 400">
                 <defs>
                     <!-- Define radial gradients for shading -->
@@ -229,6 +244,49 @@
                 </div>
             </div>
         </main>
+        <div id="controls" class="flex col">
+            <h2>Controls:</h2>
+            <table>
+                <tr>
+                    <td>Switch to Previous Song</td>
+                    <td>
+                        <div id="ArrowLeft" class="key">&#8678;</div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Switch to Next Song</td>
+                    <td>
+                        <div id="ArrowRight" class="key">&#8680;</div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Green Notes</td>
+                    <td>
+                        <div id="KeyH" class="key" style="width: 50pt">H</div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Red Notes</td>
+                    <td>
+                        <div id="KeyJ" class="key" style="width:50px">J</div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Blue Notes</td>
+                    <td>
+                        <div id="KeyK" class="key" style="width:50px">K</div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Yellow Notes</td>
+                    <td>
+                        <div id="KeyL" class="key" style="width:50px">L</div>
+                    </td>
+                </tr>
+                <!-- <tr><td>Fire</td><td>Space</td>
+              <tr><td>Restart Game</td><td>F5</td></tr> -->
+            </table>
+        </div>
         <script type="module" src="./src/main.ts"></script>
     </body>
 </html>
