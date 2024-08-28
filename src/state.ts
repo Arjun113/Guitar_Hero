@@ -76,6 +76,7 @@ class Tick implements Action {
 
         const cutMusicNotes = except((a: MusicNote) => (b: MusicNote) => a === b)
         const cutAutoNotes = except((a: {playStatus: string, note: MusicNote}) => (b: {playStatus: string, note: MusicNote}) => a === b)
+
         const unplayableUserNotes = cutMusicNotes(s.userNotes)(newUserNotes)
         const unexpiredOnscreenNotes = cut(cut(s.onscreenNotes)(expiredNotes))(playedNotes)
 
@@ -162,7 +163,8 @@ class releaseNoteKey implements Action {
         return ({
             ...s, score: s.score + (correctlyReleasedLongNotes.length)*s.multiplier,
             expiredNotes: releasedLongNotes.map((note) => ({playStatus: "released", musicNote: note.musicNote})),
-            simultaneousNotes: correctlyReleasedLongNotes.length === 0 ? 0 : (s.simultaneousNotes + correctlyReleasedLongNotes.length)
+            simultaneousNotes: (correctlyReleasedLongNotes.length === 0 && s.onscreenNotes.filter((note) =>
+                                note.musicNote.note.end - note.musicNote.note.start >= 1).length !== 0) ? 0 : (s.simultaneousNotes + correctlyReleasedLongNotes.length)
         })
 
     }

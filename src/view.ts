@@ -134,7 +134,8 @@ function updateView (onFinish: () => void, svg: SVGGraphicsElement & HTMLElement
                 ))
         }
 
-        s.onscreenNotes.filter((note) => note.playStatus === "pressed").map((note) =>
+        s.onscreenNotes.filter((note) => (note.playStatus === "pressed" && note.musicNote.note.end - note.musicNote.note.start < 1) ||
+            (note.playStatus === "pressed" && note.musicNote.note.end - note.musicNote.note.start >= 1 && between(s.time - note.musicNote.note.start,0, 0.01))).map((note) =>
             playNotes(note.musicNote.note)(s.samples, true)
         )
 
