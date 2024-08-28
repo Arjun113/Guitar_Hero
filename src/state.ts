@@ -13,7 +13,7 @@ import { between, calcNoteStartingPos, cut, except, playNotes, releaseNotes, Vec
 import { Constants, loadSong } from "./main.ts";
 import {Tail} from "./types.ts";
 
-export {Tick, pressNoteKey, releaseNoteKey, reduceState, switchSong}
+export {Tick, pressNoteKey, releaseNoteKey, reduceState, switchSong, restartSong}
 
 
 // ShortNotes and LongNotes are both just Circles, and a Circle is a Body which participates in the movement and notes
@@ -35,9 +35,9 @@ class Tick implements Action {
     constructor(public readonly timeElapsed: number) {
     }
     apply = (s: State): State => Tick.noteManagement({
-        ...s, onscreenNotes: s.onscreenNotes.map((note) => ({playStatus: note.playStatus, musicNote:Tick.moveBody(note.musicNote)} as noteStatusItem)),
-        expiredNotes: [] as Readonly<noteStatusItem>[], gameEnd: (s.automaticNotes.length === 1 && s.userNotes.length === 0 && s.onscreenNotes.length === 0),
-        keyPressed: "" as KeyColour, keyReleased: "" as KeyColour,
+        ...s, onscreenNotes: s.onscreenNotes.map((note) => ({playStatus: note.playStatus, musicNote:Tick.moveBody(note.musicNote)})),
+        expiredNotes: [], gameEnd: (s.automaticNotes.length === 1 && s.userNotes.length === 0 && s.onscreenNotes.length === 0),
+        keyPressed: "", keyReleased: "",
         time: this.timeElapsed,
         automaticNotes: s.automaticNotes.filter((note) => note.playStatus !== "pressed"),
         multiplier: 1 + 0.2 * Math.trunc(s.simultaneousNotes / 10),
@@ -51,22 +51,22 @@ class Tick implements Action {
      */
     static moveBody = (body: Body): Body => ({
         ...body,
-        svgElems: {circle: ({...body.svgElems.circle, pos: body.svgElems.circle.pos.add(body.vel.scale(Constants.TICK_RATE_MS/1000))} as Circle),
-                    tail: ({...body.svgElems.tail, pos: body.svgElems.tail.pos.add(body.vel.scale(Constants.TICK_RATE_MS/1000))} as Tail)}
+        svgElems: {circle: ({...body.svgElems.circle, pos: body.svgElems.circle.pos.add(body.vel.scale(Constants.TICK_RATE_MS/1000))}),
+                    tail: ({...body.svgElems.tail, pos: body.svgElems.tail.pos.add(body.vel.scale(Constants.TICK_RATE_MS/1000))})}
     })
 
     static noteManagement = (s: State): State => {
         const newUserNotes = s.userNotes.filter((note) => between(note.start - s.time + s.lastResetTime- 2, -(Constants.TICK_RATE_MS * 2)/1000 - 2, Constants.TICK_RATE_MS * 2/1000))
         const newShortNoteBodies = newUserNotes.filter((note) => (note.end - note.start) < 1).map(
-            (note, i) => createSmallNote({id: (s.totalNotes + i).toString(), createTime: (s.time + s.lastResetTime)} as ObjectId)
-            (calcNoteStartingPos(note)(s.time - s.lastResetTime))(note)(new Vec(0, 175))).map((body) => ({playStatus: "ready", musicNote: body} as noteStatusItem))
+            (note, i) => createSmallNote({id: (s.totalNotes + i).toString(), createTime: (s.time + s.lastResetTime)})
+            (calcNoteStartingPos(note)(s.time - s.lastResetTime))(note)(new Vec(0, 175))).map((body) => ({playStatus: "ready", musicNote: body}))
 
         const numberOfNewObjects = newShortNoteBodies.length
 
 
         const newLongNoteBodies = newUserNotes.filter((note) => (note.end - note.start) >= 1).map(
-            (note, i) => createLongNote({id: (s.totalNotes + i + numberOfNewObjects).toString(), createTime: (s.time - s.lastResetTime)} as ObjectId)
-            (calcNoteStartingPos(note)(s.time - s.lastResetTime))(note)(new Vec(0, 175))).map((body) => ({playStatus: "ready", musicNote: body} as noteStatusItem))
+            (note, i) => createLongNote({id: (s.totalNotes + i + numberOfNewObjects).toString(), createTime: (s.time - s.lastResetTime)})
+            (calcNoteStartingPos(note)(s.time - s.lastResetTime))(note)(new Vec(0, 175))).map((body) => ({playStatus: "ready", musicNote: body}))
 
         const expiredNotes = s.onscreenNotes.filter((note) => (s.time - s.lastResetTime) > note.musicNote.note.end)
         const playedNotes = s.onscreenNotes.filter((note) =>
@@ -121,8 +121,8 @@ class pressNoteKey implements Action {
 
         return ({
             ...s,
-            onscreenNotes: unplayableNotesInColumn.concat(playableNotesInColumn.map((note) => ({playStatus: "pressed", musicNote: note.musicNote} as noteStatusItem))),
-            keyPressed: (playableNotesInColumn.length === 0 ? (notesInColumn.length === 0 ? "random" : this.keyColour) : "" as KeyColour),
+            onscreenNotes: unplayableNotesInColumn.concat(playableNotesInColumn.map((note) => ({playStatus: "pressed", musicNote: note.musicNote}))),
+            keyPressed: (playableNotesInColumn.length === 0 ? (notesInColumn.length === 0 ? "random" : this.keyColour) : ""),
             notesPlayed: s.notesPlayed + playableNotesInColumn.filter((note) => (note.musicNote.note.end - note.musicNote.note.start) < 1).length,
             score: s.score + (playableNotesInColumn.filter((note) => (note.musicNote.note.end - note.musicNote.note.start) < 1).length)*s.multiplier,
             simultaneousNotes: playableNotesInColumn.length === 0 ? 0 : (s.simultaneousNotes + playableNotesInColumn.length)
@@ -161,7 +161,7 @@ class releaseNoteKey implements Action {
 
         return ({
             ...s, score: s.score + (correctlyReleasedLongNotes.length)*s.multiplier,
-            expiredNotes: releasedLongNotes.map((note) => ({playStatus: "released", musicNote: note.musicNote} as noteStatusItem)),
+            expiredNotes: releasedLongNotes.map((note) => ({playStatus: "released", musicNote: note.musicNote})),
             simultaneousNotes: correctlyReleasedLongNotes.length === 0 ? 0 : (s.simultaneousNotes + correctlyReleasedLongNotes.length)
         })
 
@@ -181,10 +181,10 @@ class switchSong implements Action {
         time: 0,
         userNotes: loadSong(((this.switchDirection === "next" ? (s.currentSongIndex + 1) % Constants.SONG_NAME.length
             : (s.currentSongIndex - 1) % Constants.SONG_NAME.length)), this.csvContents).filter((note) => note.userPlayed),
-        keyPressed: "" as KeyColour,
-        keyReleased: "" as KeyColour,
-        onscreenNotes: [] as noteStatusItem[],
-        expiredNotes: [] as noteStatusItem[],
+        keyPressed: "",
+        keyReleased: "",
+        onscreenNotes: [],
+        expiredNotes: [],
         automaticNotes: loadSong(((this.switchDirection === "next" ? (s.currentSongIndex + 1) % Constants.SONG_NAME.length
             : (s.currentSongIndex - 1) % Constants.SONG_NAME.length)), this.csvContents).filter((note) =>
             !note.userPlayed).map((note) => ({playStatus: "ready", note: note})),
@@ -211,10 +211,10 @@ class restartSong implements Action {
         highscore: 0,
         time: 0,
         userNotes: loadSong(s.currentSongIndex, this.csvContents).filter((note) => note.userPlayed),
-        keyPressed: "" as KeyColour,
-        keyReleased: "" as KeyColour,
-        onscreenNotes: [] as noteStatusItem[],
-        expiredNotes: [] as noteStatusItem[],
+        keyPressed: "",
+        keyReleased: "",
+        onscreenNotes: [],
+        expiredNotes: [],
         automaticNotes: loadSong(s.currentSongIndex, this.csvContents).filter((note) =>
             !note.userPlayed).map((note) => ({playStatus: "ready", note: note})),
         notesPlayed: 0,

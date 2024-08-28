@@ -103,12 +103,12 @@ const calcNoteStartingPos = (note: MusicNote) => (time: number): SVGGroup => {
 
     function createSVGGroup (note: MusicNote, colourPos: ColourPos, time: number): SVGGroup {
         const circle = {pos: new Vec(colourPos[1] * Viewport.CANVAS_WIDTH, (note.start - time) * 175 - 350),
-                                                    radius: Note.RADIUS, colour: colourPos[0]} as Circle
+                                                    radius: Note.RADIUS, colour: colourPos[0]}
         const line = {pos: new Vec(colourPos[1] * Viewport.CANVAS_WIDTH, (note.start - time) * 175 - 350),
                                                     width: Note.TAIL_WIDTH, length: (note.end - note.start) * 175,
-                                                    colour: colourPos[0]} as Tail
+                                                    colour: colourPos[0]}
 
-        return {svgElems: {circle: circle, tail: line}} as SVGGroup
+        return {svgElems: {circle: circle, tail: line}}
     }
 
     const colourPos = calcPercentage(note);

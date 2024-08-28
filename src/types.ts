@@ -8,7 +8,7 @@ export type {Action}
 
 /** User input */
 
-type Key = "KeyH" | "KeyJ" | "KeyK" | "KeyL" | "ArrowLeft" | "ArrowRight";
+type Key = "KeyH" | "KeyJ" | "KeyK" | "KeyL" | "ArrowLeft" | "ArrowRight" | "Enter";
 
 type Event = "keydown" | "keyup" | "keypress";
 
@@ -34,12 +34,12 @@ type State = Readonly<{
     score: number,
     highscore: number,
     time: number,
-    onscreenNotes: noteStatusItem[],
-    expiredNotes: noteStatusItem[],
+    onscreenNotes: ReadonlyArray<noteStatusItem>,
+    expiredNotes: ReadonlyArray<noteStatusItem>,
     keyPressed: KeyColour | "random",
     keyReleased: KeyColour | "random",
     userNotes: MusicNote[],
-    automaticNotes: {playStatus: string, note: MusicNote}[],
+    automaticNotes: ReadonlyArray<{playStatus: string, note: MusicNote}>,
     samples: { [p: string]: Sampler },
     totalNotes: number,
     simultaneousNotes: number,
@@ -62,7 +62,7 @@ type SVGGroup = Readonly<{
 }>
 
 /**
- * ObjectIds help us identify objects and manage objects which timeout (such as bullets)
+ * ObjectIds help us identify objects and manage objects which timeout
  */
 type ObjectId = Readonly<{ id: string, createTime: number }>
 

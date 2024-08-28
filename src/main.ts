@@ -31,7 +31,7 @@ import { map, filter, scan } from "rxjs/operators";
 import * as Tone from "tone";
 import { SampleLibrary } from "./tonejs-instruments";
 import { Key, MusicNote, State, Event, noteStatusItem, KeyColour , Body} from "./types.ts";
-import { pressNoteKey, reduceState, releaseNoteKey, Tick, switchSong } from "./state.ts";
+import { pressNoteKey, reduceState, releaseNoteKey, Tick, switchSong, restartSong } from "./state.ts";
 import { updateView } from "./view.ts";
 import { not, playNotes, RNG } from "./util.ts";
 import { Sampler } from "tone";
@@ -103,10 +103,10 @@ export function main(csv_contents: string[], samples: { [p: string]: Sampler }) 
         highscore: 0,
         time: 0,
         userNotes: loadSong(Constants.STARTING_SONG_INDEX, csv_contents).filter((note) => note.userPlayed),
-        keyPressed: "" as KeyColour,
-        keyReleased: "" as KeyColour,
-        onscreenNotes: [] as noteStatusItem[],
-        expiredNotes: [] as noteStatusItem[],
+        keyPressed: "",
+        keyReleased: "",
+        onscreenNotes: [],
+        expiredNotes: [],
         automaticNotes: loadSong(Constants.STARTING_SONG_INDEX, csv_contents).filter((note) => !note.userPlayed)
             .map((note) => ({playStatus: "ready", note: note})),
         notesPlayed: 0,
@@ -131,13 +131,13 @@ export function main(csv_contents: string[], samples: { [p: string]: Sampler }) 
         releaseGreenNote$ = key$('keyup', 'KeyH').pipe(map(_ => new releaseNoteKey("green"))),
         releaseBlueNote$ = key$('keyup', 'KeyK').pipe(map(_ => new releaseNoteKey("blue"))),
         switchToLeftSong$ = key$("keydown", 'ArrowLeft').pipe(map(_ => new switchSong("previous", csv_contents))),
-        switchToRightSong$ = key$("keyup", 'ArrowRight').pipe(map(_ => new switchSong("next", csv_contents))
-        )
+        switchToRightSong$ = key$("keyup", 'ArrowRight').pipe(map(_ => new switchSong("next", csv_contents))),
+        resetGame$ = key$("keydown", 'Enter').pipe(map(_ => new restartSong(csv_contents)))
 
     // Merge all actions + note additions + tick into one mega-observable
 
     const action$ = merge(tick$, pressGreenNote$, pressRedNote$, pressBlueNote$, pressYellowNote$,
-        releaseYellowNote$, releaseGreenNote$, releaseRedNote$, releaseBlueNote$, switchToRightSong$, switchToLeftSong$);
+        releaseYellowNote$, releaseGreenNote$, releaseRedNote$, releaseBlueNote$, switchToRightSong$, switchToLeftSong$, resetGame$);
 
     // Accumulate and transduce the states
     const state$: Observable<State> = action$.pipe(
@@ -163,6 +163,7 @@ function showKeys() {
     showKey('KeyL');
     showKey("KeyK");
     showKey('KeyJ');
+    showKey('Enter')
 }
 
 // The following simply runs your main function on window load.  Make sure to leave it in place.
