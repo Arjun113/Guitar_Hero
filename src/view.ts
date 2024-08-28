@@ -1,7 +1,7 @@
 // Canvas elements
 import { Constants, Viewport } from "./main.ts";
 import { State, Body, MusicNote, KeyColour, noteStatusItem } from "./types.ts";
-import { attr, between, isNotNullOrUndefined, playNotes, randomnumber$, releaseNotes } from "./util.ts";
+import { attr, between, isNotNullOrUndefined, noteViewTypes, playNotes, randomnumber$, releaseNotes } from "./util.ts";
 import * as Tone from "tone";
 import { from, mergeMap, Observable, map, take } from "rxjs";
 export {updateView}
@@ -63,6 +63,13 @@ function updateView (onFinish: () => void, svg: SVGGraphicsElement & HTMLElement
 
         if (!svg) {
             return
+        }
+
+        if(s.resetCanvas) {
+            noteViewTypes.forEach((noteClass) => {
+                const elems = svg.querySelectorAll("." + noteClass)
+                elems.forEach((body) => svg.removeChild(body))
+            })
         }
 
         if (scoreText) {

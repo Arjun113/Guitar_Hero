@@ -115,7 +115,8 @@ export function main(csv_contents: string[], samples: { [p: string]: Sampler }) 
         totalNotes: 0,
         simultaneousNotes: 0,
         lastResetTime: 0,
-        currentSongIndex: Constants.STARTING_SONG_INDEX
+        currentSongIndex: Constants.STARTING_SONG_INDEX,
+        resetCanvas: false
     } as const;
 
 

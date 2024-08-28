@@ -4,7 +4,7 @@ import * as Tone from "tone";
 import { Sampler } from "tone";
 import { interval } from "rxjs";
 import { map, scan } from "rxjs/operators";
-export {Vec, attr, calcNoteStartingPos, except, isNotNullOrUndefined, not, between, RNG, playNotes, releaseNotes, cut, randomnumber$}
+export {Vec, attr, calcNoteStartingPos, except, isNotNullOrUndefined, not, between, RNG, playNotes, releaseNotes, cut, randomnumber$, noteViewTypes}
 
 /**
  * A random number generator which provides two pure functions
@@ -154,3 +154,7 @@ const randomnumber$ = (seed: number) => interval(10 as number).pipe(
     scan((acc, val) => RNG.hash(val), seed),
     map((randnum) => RNG.scale(randnum))
 )
+
+
+const noteViewTypes = ["redShortNote", "redLongNote", "blueShortNote", "blueLongNote", "yellowShortNote", "yellowLongNote",
+    "greenShortNote", "greenLongNote", "greenLongNoteTail", "redLongNoteTail", "yellowLongNoteTail", "blueLongNoteTail"]

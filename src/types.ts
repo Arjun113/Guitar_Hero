@@ -44,7 +44,8 @@ type State = Readonly<{
     totalNotes: number,
     simultaneousNotes: number,
     lastResetTime: number,
-    currentSongIndex: number
+    currentSongIndex: number,
+    resetCanvas: boolean
 }>;
 
 type Circle = Readonly<{ pos: Vec, radius: number, colour: string }>

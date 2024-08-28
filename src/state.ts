@@ -40,7 +40,8 @@ class Tick implements Action {
         keyPressed: "" as KeyColour, keyReleased: "" as KeyColour,
         time: this.timeElapsed,
         automaticNotes: s.automaticNotes.filter((note) => note.playStatus !== "pressed"),
-        multiplier: 1 + 0.2 * Math.trunc(s.simultaneousNotes / 10)
+        multiplier: 1 + 0.2 * Math.trunc(s.simultaneousNotes / 10),
+        resetCanvas: false
     })
 
     /**
@@ -193,7 +194,35 @@ class switchSong implements Action {
         simultaneousNotes: 0,
         lastResetTime: s.time,
         currentSongIndex: this.switchDirection === "next" ? (s.currentSongIndex + 1) % Constants.SONG_NAME.length
-            : (s.currentSongIndex - 1) % Constants.SONG_NAME.length
+            : (s.currentSongIndex - 1) % Constants.SONG_NAME.length,
+        resetCanvas: true
+    })
+}
+
+class restartSong implements Action {
+    constructor(public readonly csvContents: string[]) {
+    }
+
+    apply = (s: State): State => ({
+        ...s,
+        gameEnd: false,
+        multiplier: 1,
+        score: 0,
+        highscore: 0,
+        time: 0,
+        userNotes: loadSong(s.currentSongIndex, this.csvContents).filter((note) => note.userPlayed),
+        keyPressed: "" as KeyColour,
+        keyReleased: "" as KeyColour,
+        onscreenNotes: [] as noteStatusItem[],
+        expiredNotes: [] as noteStatusItem[],
+        automaticNotes: loadSong(s.currentSongIndex, this.csvContents).filter((note) =>
+            !note.userPlayed).map((note) => ({playStatus: "ready", note: note})),
+        notesPlayed: 0,
+        notesMissed: 0,
+        totalNotes: 0,
+        simultaneousNotes: 0,
+        lastResetTime: s.time,
+        resetCanvas: true
     })
 }
 
