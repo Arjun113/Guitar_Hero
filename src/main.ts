@@ -1,19 +1,13 @@
 /**
- * Inside this file you will use the classes and functions from rx.js
- * to add visuals to the svg element in index.html, animate them, and make them interactive.
- *
- * Study and complete the tasks in observable exercises first to get ideas.
- *
- * Course Notes showing Asteroids in FRP: https://tgdwyer.github.io/asteroids/
- *
- * You will be marked on your functional programming style
- * as well as the functionality that you implement.
- *
- * Document your code!
+ * Imports required modules and functions for the application.
+ * - rxjs for reactive programming with Observables
+ * - tone for handling musical samples
+ * - types for custom TypeScript types
+ * - state for managing game state
+ * - view for updating the game view
+ * - util for utility functions
  */
-
 import "./style.css";
-
 import {
     concatMap, delay,
     from,
@@ -30,32 +24,39 @@ import {
 import { map, filter, scan } from "rxjs/operators";
 import * as Tone from "tone";
 import { SampleLibrary } from "./tonejs-instruments";
-import { Key, MusicNote, State, Event, noteStatusItem, KeyColour , Body} from "./types.ts";
+import { Key, MusicNote, State, Event, noteStatusItem, KeyColour , Body } from "./types.ts";
 import { pressNoteKey, reduceState, releaseNoteKey, Tick, switchSong, restartSong } from "./state.ts";
 import { updateView } from "./view.ts";
 import { not, playNotes, RNG } from "./util.ts";
 import { Sampler } from "tone";
-export { Note, Viewport, Constants, loadSong}
+export { Note, Viewport, Constants, loadSong }
 
-/** Constants */
-
+/**
+ * Defines constants used throughout the application.
+ */
 const Viewport = {
     CANVAS_WIDTH: 200,
     CANVAS_HEIGHT: 400,
 } as const;
 
 const Constants = {
-    TICK_RATE_MS: 10,
-    SONG_NAME: ["RockinRobin", "IWonder", "Runaway"],
-    STARTING_SONG_INDEX: 1
+    TICK_RATE_MS: 10, // Interval between ticks in milliseconds
+    SONG_NAME: ["RockinRobin", "IWonder", "Runaway"], // List of available song names
+    STARTING_SONG_INDEX: 1 // Index of the song to start with
 } as const;
 
 const Note = {
-    RADIUS: 0.07 * Viewport.CANVAS_WIDTH,
-    TAIL_WIDTH: 10
+    RADIUS: 0.07 * Viewport.CANVAS_WIDTH, // Radius of the note circles
+    TAIL_WIDTH: 10 // Width of the note tails
 } as const;
 
-const loadSong = (songIndex: number, csvContents: string[]) => {
+/**
+ * Loads song data from CSV contents based on the given song index.
+ * @param songIndex - Index of the song to load
+ * @param csvContents - Array of CSV strings for each song
+ * @returns Array of MusicNote objects
+ */
+const loadSong = (songIndex: number, csvContents: string[]): MusicNote[] => {
     const lines = csvContents[songIndex].split("\n");
     const noteSeries = lines.map((line) => ({
         userPlayed: Boolean(line.split(',')[0] === "True"),
@@ -72,30 +73,31 @@ const loadSong = (songIndex: number, csvContents: string[]) => {
 }
 
 /**
- * This is the function called on page load. Your main game loop
- * should be called here.
+ * Initializes and runs the main game loop.
+ * Sets up observables for game actions and updates the game state.
+ * @param csv_contents - Array of CSV contents for songs
+ * @param samples - Object containing the loaded audio samples
  */
 export function main(csv_contents: string[], samples: { [p: string]: Sampler }) {
-    const svg = document.querySelector("#svgCanvas") as SVGGraphicsElement &
-        HTMLElement;
-    const preview = document.querySelector(
-        "#svgPreview",
-    ) as SVGGraphicsElement & HTMLElement;
+    const svg = document.querySelector("#svgCanvas") as SVGGraphicsElement & HTMLElement;
+    const preview = document.querySelector("#svgPreview") as SVGGraphicsElement & HTMLElement;
 
-
-
+    // Observable for keyboard events filtered by specific keys
     const key$ = (e: Event, k: Key) =>
         fromEvent<KeyboardEvent>(document, e)
             .pipe(
                 filter(({code}) => code === k),
-                filter(({repeat}) => !repeat))
+                filter(({repeat}) => !repeat)
+            );
 
+    // Observable that emits a tick at regular intervals
     const tick$ = interval(Constants.TICK_RATE_MS)
         .pipe(
             scan((acc, _) => acc + (Constants.TICK_RATE_MS / 1000), 0),
             map((acc) => new Tick(acc))
-        )
+        );
 
+    // Initial game state setup
     const initialState: State = {
         gameEnd: false,
         multiplier: 1,
@@ -108,7 +110,7 @@ export function main(csv_contents: string[], samples: { [p: string]: Sampler }) 
         onscreenNotes: [],
         expiredNotes: [],
         automaticNotes: loadSong(Constants.STARTING_SONG_INDEX, csv_contents).filter((note) => !note.userPlayed)
-            .map((note) => ({playStatus: "ready", note: note})),
+            .map((note) => ({ playStatus: "ready", note: note })),
         notesPlayed: 0,
         notesMissed: 0,
         samples: samples,
@@ -119,8 +121,8 @@ export function main(csv_contents: string[], samples: { [p: string]: Sampler }) 
         resetCanvas: false
     } as const;
 
-
-    /** Key actions and automated note insertions
+    /**
+     * Observables for key actions and automated note insertions
      */
     const pressRedNote$ = key$('keydown', 'KeyJ').pipe(map(_ => new pressNoteKey("red"))),
         pressGreenNote$ = key$('keydown', 'KeyH').pipe(map(_ => new pressNoteKey("green"))),
@@ -132,10 +134,9 @@ export function main(csv_contents: string[], samples: { [p: string]: Sampler }) 
         releaseBlueNote$ = key$('keyup', 'KeyK').pipe(map(_ => new releaseNoteKey("blue"))),
         switchToLeftSong$ = key$("keydown", 'ArrowLeft').pipe(map(_ => new switchSong("previous", csv_contents))),
         switchToRightSong$ = key$("keyup", 'ArrowRight').pipe(map(_ => new switchSong("next", csv_contents))),
-        resetGame$ = key$("keydown", 'Enter').pipe(map(_ => new restartSong(csv_contents)))
+        resetGame$ = key$("keydown", 'Enter').pipe(map(_ => new restartSong(csv_contents)));
 
-    // Merge all actions + note additions + tick into one mega-observable
-
+    // Merge all actions and note additions into a single observable
     const action$ = merge(tick$, pressGreenNote$, pressRedNote$, pressBlueNote$, pressYellowNote$,
         releaseYellowNote$, releaseGreenNote$, releaseRedNote$, releaseBlueNote$, switchToRightSong$, switchToLeftSong$, resetGame$);
 
@@ -143,19 +144,23 @@ export function main(csv_contents: string[], samples: { [p: string]: Sampler }) 
     const state$: Observable<State> = action$.pipe(
         scan((acc_state, new_act) => reduceState(new_act, acc_state), initialState)
     );
-    const subscription: Subscription = state$.subscribe(updateView(() => subscription.unsubscribe(), svg));
 
+    // Subscribe to state changes and update the view
+    const subscription: Subscription = state$.subscribe(updateView(() => subscription.unsubscribe(), svg));
 }
 
+/**
+ * Sets up visual feedback for key presses by highlighting corresponding elements.
+ */
 function showKeys() {
     function showKey(k: Key) {
-        const arrowKey = document.getElementById(k)
+        const arrowKey = document.getElementById(k);
         // getElement might be null, in this case return without doing anything
-        if (!arrowKey) return
+        if (!arrowKey) return;
         const o = (e: Event) => fromEvent<KeyboardEvent>(document, e).pipe(
-            filter(({ code }) => code === k))
-        o('keydown').subscribe(e => arrowKey.classList.add("highlight"))
-        o('keyup').subscribe(_ => arrowKey.classList.remove("highlight"))
+            filter(({ code }) => code === k));
+        o('keydown').subscribe(e => arrowKey.classList.add("highlight"));
+        o('keyup').subscribe(_ => arrowKey.classList.remove("highlight"));
     }
     showKey('ArrowLeft');
     showKey('ArrowRight');
@@ -163,11 +168,10 @@ function showKeys() {
     showKey('KeyL');
     showKey("KeyK");
     showKey('KeyJ');
-    showKey('Enter')
+    showKey('Enter');
 }
 
-// The following simply runs your main function on window load.  Make sure to leave it in place.
-// You should not need to change this, beware if you are.
+// The following runs your main function when the window loads. It initializes game and key events.
 if (typeof window !== "undefined") {
     // Load in the instruments and then start your game!
     const samples = SampleLibrary.load({
@@ -179,17 +183,16 @@ if (typeof window !== "undefined") {
             "saxophone",
             "trombone",
             "flute",
-        ], // SampleLibrary.list,
+        ],
         baseUrl: "samples/",
     });
-
 
     const start_game = (contents: string[]) => {
         document.body.addEventListener(
             "mousedown",
             function () {
                 main(contents, samples);
-                showKeys()
+                showKeys();
             },
             { once: true },
         );
@@ -211,6 +214,5 @@ if (typeof window !== "undefined") {
             .catch((error) =>
                 console.error("Error fetching the CSV files:", error),
             );
-    })
+    });
 }
-
