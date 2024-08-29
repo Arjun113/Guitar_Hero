@@ -54,7 +54,7 @@ class Tick implements Action {
         ...s, onscreenNotes: s.onscreenNotes.map((note) => ({playStatus: note.playStatus, musicNote:Tick.moveBody(note.musicNote)})),
         expiredNotes: [], gameEnd: (s.automaticNotes.length === 1 && s.userNotes.length === 0 && s.onscreenNotes.length === 0),
         keyPressed: "", keyReleased: "",
-        time: this.timeElapsed,
+        time: this.timeElapsed - 2,
         automaticNotes: s.automaticNotes.filter((note) => note.playStatus !== "pressed"),
         multiplier: 1 + 0.2 * Math.trunc(s.simultaneousNotes / 10),
         resetCanvas: false
@@ -288,7 +288,7 @@ class switchSong implements Action {
         notesMissed: 0,
         totalNotes: 0,
         simultaneousNotes: 0,
-        lastResetTime: s.time,
+        lastResetTime: s.time + 2,
         currentSongIndex: this.switchDirection === "next" ? (s.currentSongIndex + 1) % Constants.SONG_NAME.length
             : (s.currentSongIndex - 1) % Constants.SONG_NAME.length,
         resetCanvas: true
@@ -325,7 +325,7 @@ class restartSong implements Action {
         notesMissed: 0,
         totalNotes: 0,
         simultaneousNotes: 0,
-        lastResetTime: s.time,
+        lastResetTime: s.time + 2,
         resetCanvas: true
     })
 }
