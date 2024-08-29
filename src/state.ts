@@ -120,10 +120,10 @@ class Tick implements Action {
                 note.playStatus === "ready" && note.note.start <= (s.time - s.lastResetTime)
             );
 
-            // Function to compare two MusicNotes
+            // Function to subtract lists of MusicNotes
             const cutMusicNotes = except((a: MusicNote) => (b: MusicNote) => a === b);
 
-            // Function to compare two automatic notes
+            // Function to 'subtract' lists of NoteStatusItem
             const cutAutoNotes = except((a: { playStatus: string, note: MusicNote }) => (b: { playStatus: string, note: MusicNote }) => a === b);
 
             // Filter out user notes that are no longer playable

@@ -4,7 +4,8 @@ import * as Tone from "tone";
 import { Sampler } from "tone";
 import { interval, Observable, shareReplay, Subject, zip, zipWith } from "rxjs";
 import { map, scan } from "rxjs/operators";
-export { Vec, attr, calcNoteStartingPos, except, isNotNullOrUndefined, not, between, RNG, playNotes, releaseNotes, cut, threeRNGStream$, threeRNGSubject$, noteViewTypes }
+export { Vec, attr, calcNoteStartingPos, except, isNotNullOrUndefined, not, between, RNG, playNotes, releaseNotes, cut,
+    threeRNGStream$, threeRNGSubject$, noteViewTypes }
 
 /**
  * A random number generator (RNG) using a Linear Congruential Generator (LCG) algorithm.

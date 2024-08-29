@@ -8,7 +8,7 @@ import {
     noteViewTypes,
     playNotes,
     releaseNotes,
-    threeRNGStream$, threeRNGSubject$,
+    threeRNGSubject$,
 } from "./util.ts";
 import * as Tone from "tone";
 import { from, mergeMap, Observable, map, take, tap, takeUntil } from "rxjs";
@@ -174,7 +174,7 @@ function updateView(onFinish: () => void, svg: SVGGraphicsElement & HTMLElement)
             );
         }
 
-        // Play notes that are marked as pressed and have a short duration
+        // Play notes that are marked as pressed and have a short duration OR long notes which are within 1 tick of the start time ONLY ONCE
         s.onscreenNotes.filter((note) => (note.playStatus === "pressed" && note.musicNote.note.end - note.musicNote.note.start < 1) ||
             (note.playStatus === "pressed" && note.musicNote.note.end - note.musicNote.note.start >= 1 && between(s.time - note.musicNote.note.start, 0, 0.01)))
             .forEach((note) => playNotes(note.musicNote.note)(s.samples, true));
