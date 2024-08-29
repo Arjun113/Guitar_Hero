@@ -2,9 +2,9 @@ import { Circle, ColourPos, MusicNote, Body, noteStatusItem, SVGGroup, Tail } fr
 import { Note, Viewport } from "./main.ts";
 import * as Tone from "tone";
 import { Sampler } from "tone";
-import { interval } from "rxjs";
+import { interval, zip, zipWith } from "rxjs";
 import { map, scan } from "rxjs/operators";
-export { Vec, attr, calcNoteStartingPos, except, isNotNullOrUndefined, not, between, RNG, playNotes, releaseNotes, cut, randomnumber$, noteViewTypes }
+export { Vec, attr, calcNoteStartingPos, except, isNotNullOrUndefined, not, between, RNG, playNotes, releaseNotes, cut, threeRandomNumber$, noteViewTypes }
 
 /**
  * A random number generator (RNG) using a Linear Congruential Generator (LCG) algorithm.
@@ -135,12 +135,12 @@ const calcNoteStartingPos = (note: MusicNote) => (time: number): SVGGroup => {
      */
     function createSVGGroup(note: MusicNote, colourPos: ColourPos, time: number): SVGGroup {
         const circle = {
-            pos: new Vec(colourPos[1] * Viewport.CANVAS_WIDTH, (note.start - time) * 175 - 350),
+            pos: new Vec(colourPos[1] * Viewport.CANVAS_WIDTH,  350 - (note.start - time) * 175),
             radius: Note.RADIUS,
             colour: colourPos[0]
         };
         const line = {
-            pos: new Vec(colourPos[1] * Viewport.CANVAS_WIDTH, (note.start - time) * 175 - 350),
+            pos: new Vec(colourPos[1] * Viewport.CANVAS_WIDTH, 350 - (note.start - time) * 175),
             width: Note.TAIL_WIDTH,
             length: (note.end - note.start) * 175,
             colour: colourPos[0]
@@ -213,10 +213,13 @@ const cut = except((a: noteStatusItem) => (b: noteStatusItem) => a.musicNote.id 
  * @param seed - The initial seed value
  * @returns An observable sequence of scaled random numbers
  */
-const randomnumber$ = (seed: number) => interval(10 as number).pipe(
+const randomnumber$ = (seed: number) => interval(10).pipe(
     scan((acc, val) => RNG.hash(val), seed),
     map((randnum) => RNG.scale(randnum))
 )
+
+// Zip together three observables to make different prime numbers
+const threeRandomNumber$ = zip(randomnumber$(101), randomnumber$(71), randomnumber$(547))
 
 /**
  * List of note view types used for rendering notes in the SVG.

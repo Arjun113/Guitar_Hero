@@ -1,7 +1,15 @@
 // Canvas elements
 import { Constants, Viewport } from "./main.ts";
 import { State, Body, MusicNote, KeyColour, noteStatusItem } from "./types.ts";
-import { attr, between, isNotNullOrUndefined, noteViewTypes, playNotes, randomnumber$, releaseNotes } from "./util.ts";
+import {
+    attr,
+    between,
+    isNotNullOrUndefined,
+    noteViewTypes,
+    playNotes,
+    releaseNotes,
+    threeRandomNumber$,
+} from "./util.ts";
 import * as Tone from "tone";
 import { from, mergeMap, Observable, map, take } from "rxjs";
 export { updateView }
@@ -122,12 +130,12 @@ function updateView(onFinish: () => void, svg: SVGGraphicsElement & HTMLElement)
 
         // Handle random note generation based on key pressed
         if (s.keyPressed === "random") {
-            randomnumber$(101).pipe(take(1)).subscribe(
+            threeRandomNumber$.pipe(take(1)).subscribe(
                 (randomNum) => s.samples["piano"].triggerAttackRelease(
-                    Tone.Frequency(Math.round(69 + 12 * Math.log2(randomNum * 127 / 440)), "midi").toNote(),
-                    0.2,
+                    Tone.Frequency(Math.round(69 + 12 * Math.log2(randomNum[0] * 127 / 440)), "midi").toNote(),
+                    randomNum[1] / 4,
                     undefined,
-                    0.5
+                    randomNum[2]/2
                 )
             );
         } else if (s.keyPressed !== "") {
@@ -158,10 +166,10 @@ function updateView(onFinish: () => void, svg: SVGGraphicsElement & HTMLElement)
                 getNearestNote(s)(s.keyPressed)[0]
             );
 
-            randomnumber$(101).pipe(take(1)).subscribe(
+            threeRandomNumber$.pipe(take(1)).subscribe(
                 (randomNum) => s.samples[nearestNote.musicNote.note.instrument].triggerAttackRelease(
                     Tone.Frequency(nearestNote.musicNote.note.pitch, "midi").toNote(),
-                    randomNum,
+                    randomNum[0] / 4,
                     undefined,
                     nearestNote.musicNote.note.velocity / 127
                 )
