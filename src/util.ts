@@ -2,9 +2,9 @@ import { Circle, ColourPos, MusicNote, Body, noteStatusItem, SVGGroup, Tail } fr
 import { Note, Viewport } from "./main.ts";
 import * as Tone from "tone";
 import { Sampler } from "tone";
-import { interval, zip, zipWith } from "rxjs";
+import { interval, Observable, shareReplay, Subject, zip, zipWith } from "rxjs";
 import { map, scan } from "rxjs/operators";
-export { Vec, attr, calcNoteStartingPos, except, isNotNullOrUndefined, not, between, RNG, playNotes, releaseNotes, cut, threeRandomNumber$, noteViewTypes }
+export { Vec, attr, calcNoteStartingPos, except, isNotNullOrUndefined, not, between, RNG, playNotes, releaseNotes, cut, threeRNGStream$, threeRNGSubject$, noteViewTypes }
 
 /**
  * A random number generator (RNG) using a Linear Congruential Generator (LCG) algorithm.
@@ -208,18 +208,22 @@ const releaseNotes = (musicNote: MusicNote) => (samples: { [p: string]: Sampler 
  */
 const cut = except((a: noteStatusItem) => (b: noteStatusItem) => a.musicNote.id === b.musicNote.id);
 
-/**
- * Generates a sequence of random numbers based on a seed.
- * @param seed - The initial seed value
- * @returns An observable sequence of scaled random numbers
- */
-const randomnumber$ = (seed: number) => interval(10).pipe(
-    scan((acc, val) => RNG.hash(val), seed),
-    map((randnum) => RNG.scale(randnum))
-)
+export function createRngStreamFromSource<T>(source$: Observable<T>) {
+    return (seed: number = 0): Observable<number> => {
+        return source$.pipe(
+            scan(() => seed = RNG.hash(seed)),
+            map(() => RNG.scale(RNG.hash(seed)))
+        );
+    };
+}
 
 // Zip together three observables to make different prime numbers
-const threeRandomNumber$ = zip(randomnumber$(101), randomnumber$(71), randomnumber$(547))
+const rngStream = createRngStreamFromSource(interval(10));
+// New Subject for the numbers. This is to ensure that the numbers are actually random.
+// Because take(1) on plain Observables returns the same values every time.
+// I am aware that Subjects are probably outside the unit scope, but I did not want to use Math.random()
+const threeRNGSubject$ = new Subject<number[]>()
+const threeRNGStream$ = zip(rngStream(101), rngStream(717), rngStream(817)).subscribe(threeRNGSubject$)
 
 /**
  * List of note view types used for rendering notes in the SVG.

@@ -12,6 +12,7 @@ import {
 import { between, calcNoteStartingPos, cut, except, playNotes, releaseNotes, Vec } from "./util.ts";
 import { Constants, loadSong } from "./main.ts";
 import {Tail} from "./types.ts";
+import * as Tone from "tone";
 
 export {Tick, pressNoteKey, releaseNoteKey, reduceState, switchSong, restartSong}
 

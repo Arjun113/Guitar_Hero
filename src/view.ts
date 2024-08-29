@@ -8,10 +8,10 @@ import {
     noteViewTypes,
     playNotes,
     releaseNotes,
-    threeRandomNumber$,
+    threeRNGStream$, threeRNGSubject$,
 } from "./util.ts";
 import * as Tone from "tone";
-import { from, mergeMap, Observable, map, take } from "rxjs";
+import { from, mergeMap, Observable, map, take, tap, takeUntil } from "rxjs";
 export { updateView }
 
 /**
@@ -38,8 +38,6 @@ const hide = (elem: SVGGraphicsElement) =>
  */
 function updateView(onFinish: () => void, svg: SVGGraphicsElement & HTMLElement) {
     return function(s: State) {
-        // Log the current time and last reset time for debugging
-        console.log(s.time, s.lastResetTime);
 
         // Get references to text fields for displaying game data
         const gameover = document.querySelector("#gameOver") as SVGGraphicsElement & HTMLElement;
@@ -130,12 +128,12 @@ function updateView(onFinish: () => void, svg: SVGGraphicsElement & HTMLElement)
 
         // Handle random note generation based on key pressed
         if (s.keyPressed === "random") {
-            threeRandomNumber$.pipe(take(1)).subscribe(
+            threeRNGSubject$.pipe(take(1)).subscribe(
                 (randomNum) => s.samples["piano"].triggerAttackRelease(
-                    Tone.Frequency(Math.round(69 + 12 * Math.log2(randomNum[0] * 127 / 440)), "midi").toNote(),
-                    randomNum[1] / 4,
+                    Tone.Frequency(Math.floor(randomNum[0] * 83 + 24), "midi").toNote(),
+                    randomNum[1],
                     undefined,
-                    randomNum[2]/2
+                    randomNum[2]
                 )
             );
         } else if (s.keyPressed !== "") {
@@ -166,10 +164,10 @@ function updateView(onFinish: () => void, svg: SVGGraphicsElement & HTMLElement)
                 getNearestNote(s)(s.keyPressed)[0]
             );
 
-            threeRandomNumber$.pipe(take(1)).subscribe(
+            threeRNGSubject$.pipe(take(1)).subscribe(
                 (randomNum) => s.samples[nearestNote.musicNote.note.instrument].triggerAttackRelease(
                     Tone.Frequency(nearestNote.musicNote.note.pitch, "midi").toNote(),
-                    randomNum[0] / 4,
+                    randomNum[0],
                     undefined,
                     nearestNote.musicNote.note.velocity / 127
                 )
