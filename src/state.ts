@@ -221,19 +221,23 @@ class releaseNoteKey implements Action {
         function findLongNotesInColumn (keyColour: KeyColour): ReadonlyArray<noteStatusItem> {
             if (keyColour === "green") {
                 return s.onscreenNotes.filter((note) =>
-                    note.playStatus === "pressed" && between(note.musicNote.note.pitch, 0, 32))
+                    note.playStatus === "pressed" && between(note.musicNote.note.pitch, 0, 32)
+                    && (note.musicNote.note.end - note.musicNote.note.start) >= 1)
             }
             else if (keyColour === "red") {
                 return s.onscreenNotes.filter((note) =>
-                    note.playStatus === "pressed" && between(note.musicNote.note.pitch, 32, 64))
+                    note.playStatus === "pressed" && between(note.musicNote.note.pitch, 32, 64)
+                    && (note.musicNote.note.end - note.musicNote.note.start) >= 1)
             }
             else if (keyColour === "yellow") {
                 return s.onscreenNotes.filter((note) =>
-                    note.playStatus === "pressed" && between(note.musicNote.note.pitch, 96, 128))
+                    note.playStatus === "pressed" && between(note.musicNote.note.pitch, 96, 128)
+                    && (note.musicNote.note.end - note.musicNote.note.start) >= 1)
             }
             else if (keyColour === "blue") {
                 return s.onscreenNotes.filter((note) =>
-                    note.playStatus === "pressed" && between(note.musicNote.note.pitch, 64, 96))
+                    note.playStatus === "pressed" && between(note.musicNote.note.pitch, 64, 96)
+                    && (note.musicNote.note.end - note.musicNote.note.start) >= 1)
             }
             else {
                 return [] as ReadonlyArray<noteStatusItem>
