@@ -9,25 +9,18 @@
  */
 import "./style.css";
 import {
-    concatMap, delay,
-    from,
     fromEvent,
     interval,
     merge,
-    mergeMap,
-    Observable, of,
-    Subscription,
-    switchMap,
-    take, tap,
-    timer,
+    Observable,
+    Subscription
 } from "rxjs";
 import { map, filter, scan } from "rxjs/operators";
 import * as Tone from "tone";
 import { SampleLibrary } from "./tonejs-instruments";
-import { Key, MusicNote, State, Event, noteStatusItem, KeyColour , Body } from "./types.ts";
+import { Key, MusicNote, State, Event} from "./types.ts";
 import { pressNoteKey, reduceState, releaseNoteKey, Tick, switchSong, restartSong } from "./state.ts";
 import { updateView } from "./view.ts";
-import { not, playNotes, RNG } from "./util.ts";
 import { Sampler } from "tone";
 export { Note, Viewport, Constants, loadSong }
 
@@ -41,7 +34,7 @@ const Viewport = {
 
 const Constants = {
     TICK_RATE_MS: 10, // Interval between ticks in milliseconds
-    SONG_NAME: ["RockinRobin", "IWonder", "Runaway"], // List of available song names
+    SONG_NAME: ["RockinRobin", "IWonder"], // List of available song names
     STARTING_SONG_INDEX: 1 // Index of the song to start with
 } as const;
 
@@ -82,7 +75,7 @@ export function main(csv_contents: string[], samples: { [p: string]: Sampler }) 
     const svg = document.querySelector("#svgCanvas") as SVGGraphicsElement & HTMLElement;
     const preview = document.querySelector("#svgPreview") as SVGGraphicsElement & HTMLElement;
 
-    // Observable for keyboard events filtered by specific keys
+    // Observable for keyboard events filtered by specific keys and prevent repetition (since we use keydown and not keypress)
     const key$ = (e: Event, k: Key) =>
         fromEvent<KeyboardEvent>(document, e)
             .pipe(

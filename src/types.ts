@@ -1,9 +1,7 @@
 import { Vec } from "./util.ts";
-import {Note } from "./main.ts";
-import * as Tone from "tone";
 import { Sampler } from "tone";
 
-export type {Key, Event, MusicNote, State, ViewType, ObjectId, Circle, Body, ColourPos, noteStatusItem, SVGGroup, KeyColour, Tail, SongSwitchWays}
+export type {Key, Event, MusicNote, State, ViewType, ObjectId, Circle, Body, ColourPos, NoteStatusItem, SVGGroup, KeyColour, Tail, SongSwitchWays}
 export type {Action}
 
 /** User input */
@@ -40,8 +38,8 @@ type State = Readonly<{
     score: number,
     highscore: number,
     time: number,
-    onscreenNotes: ReadonlyArray<noteStatusItem>,
-    expiredNotes: ReadonlyArray<noteStatusItem>,
+    onscreenNotes: ReadonlyArray<NoteStatusItem>,
+    expiredNotes: ReadonlyArray<NoteStatusItem>,
     keyPressed: KeyColour | "random",
     keyReleased: KeyColour | "random",
     userNotes: MusicNote[],
@@ -95,7 +93,7 @@ interface Action {
 // Represents the status of a note, including its play status and associated body.
 // This is the heart of the scheduler-like operation in this program
 // Notes have different states that are modified in the Controller (state.ts) and reflected in the View (view.ts) as per MVC
-type noteStatusItem = Readonly<{
+type NoteStatusItem = Readonly<{
     musicNote: Body,
     playStatus: string
 }>

@@ -1,8 +1,8 @@
-import { Circle, ColourPos, MusicNote, Body, noteStatusItem, SVGGroup, Tail } from "./types.ts";
+import { ColourPos, MusicNote, NoteStatusItem, SVGGroup} from "./types.ts";
 import { Note, Viewport } from "./main.ts";
 import * as Tone from "tone";
 import { Sampler } from "tone";
-import { interval, Observable, shareReplay, Subject, zip, zipWith } from "rxjs";
+import { interval, Observable, Subject, zip} from "rxjs";
 import { map, scan } from "rxjs/operators";
 export { Vec, attr, calcNoteStartingPos, except, isNotNullOrUndefined, not, between, RNG, playNotes, releaseNotes, cut,
     threeRNGStream$, threeRNGSubject$, noteViewTypes }
@@ -207,7 +207,7 @@ const releaseNotes = (musicNote: MusicNote) => (samples: { [p: string]: Sampler 
  * @param b - The second noteStatusItem to compare with
  * @returns True if the IDs are the same, otherwise false
  */
-const cut = except((a: noteStatusItem) => (b: noteStatusItem) => a.musicNote.id === b.musicNote.id);
+const cut = except((a: NoteStatusItem) => (b: NoteStatusItem) => a.musicNote.id === b.musicNote.id);
 
 export function createRngStreamFromSource<T>(source$: Observable<T>) {
     return (seed: number = 0): Observable<number> => {

@@ -1,6 +1,5 @@
 // Canvas elements
-import { Constants, Viewport } from "./main.ts";
-import { State, Body, MusicNote, KeyColour, noteStatusItem } from "./types.ts";
+import { State, Body, KeyColour, NoteStatusItem } from "./types.ts";
 import {
     attr,
     between,
@@ -11,7 +10,7 @@ import {
     threeRNGSubject$,
 } from "./util.ts";
 import * as Tone from "tone";
-import { from, mergeMap, Observable, map, take, tap, takeUntil } from "rxjs";
+import {take} from "rxjs";
 export { updateView }
 
 /**
@@ -143,7 +142,7 @@ function updateView(onFinish: () => void, svg: SVGGraphicsElement & HTMLElement)
              * @param keyColour - The key color to match
              * @returns An array of noteStatusItem objects that match the key color
              */
-            const getNearestNote = (s: State) => (keyColour: KeyColour): ReadonlyArray<noteStatusItem> => {
+            const getNearestNote = (s: State) => (keyColour: KeyColour): ReadonlyArray<NoteStatusItem> => {
                 switch (keyColour) {
                     case "green":
                         return s.onscreenNotes.filter((note) => between(note.musicNote.note.pitch, 0, 32));
@@ -154,7 +153,7 @@ function updateView(onFinish: () => void, svg: SVGGraphicsElement & HTMLElement)
                     case "blue":
                         return s.onscreenNotes.filter((note) => between(note.musicNote.note.pitch, 64, 96));
                     default:
-                        return [] as ReadonlyArray<noteStatusItem>;
+                        return [] as ReadonlyArray<NoteStatusItem>;
                 }
             };
 

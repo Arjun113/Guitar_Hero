@@ -1,18 +1,14 @@
 import {
-    Circle,
     ObjectId,
     State,
     ViewType,
     Body,
     Action,
     MusicNote,
-    Key,
-    noteStatusItem, SVGGroup, KeyColour, SongSwitchWays,
+    NoteStatusItem, SVGGroup, KeyColour, SongSwitchWays,
 } from "./types.ts";
-import { between, calcNoteStartingPos, cut, except, playNotes, releaseNotes, Vec } from "./util.ts";
+import { between, calcNoteStartingPos, cut, except, Vec } from "./util.ts";
 import { Constants, loadSong } from "./main.ts";
-import {Tail} from "./types.ts";
-import * as Tone from "tone";
 
 export {Tick, pressNoteKey, releaseNoteKey, reduceState, switchSong, restartSong}
 
@@ -166,7 +162,7 @@ class pressNoteKey implements Action {
          * @param keyColour - The key color
          * @returns An array of noteStatusItems in the column
          */
-        function findNotesInColumn (keyColour: KeyColour): ReadonlyArray<noteStatusItem> {
+        function findNotesInColumn (keyColour: KeyColour): ReadonlyArray<NoteStatusItem> {
             if (keyColour === "green") {
                 return s.onscreenNotes.filter((note) => between(note.musicNote.note.pitch, 0, 32))
             }
@@ -179,7 +175,7 @@ class pressNoteKey implements Action {
             else if (keyColour === "blue") {
                 return s.onscreenNotes.filter((note) => between(note.musicNote.note.pitch, 64, 96))
             }
-            return [] as ReadonlyArray<noteStatusItem>
+            return [] as ReadonlyArray<NoteStatusItem>
         }
 
         const notesInColumn = findNotesInColumn(this.keyColour);
@@ -218,7 +214,7 @@ class releaseNoteKey implements Action {
          * @param keyColour - The key color
          * @returns An array of noteStatusItems for long notes
          */
-        function findLongNotesInColumn (keyColour: KeyColour): ReadonlyArray<noteStatusItem> {
+        function findLongNotesInColumn (keyColour: KeyColour): ReadonlyArray<NoteStatusItem> {
             if (keyColour === "green") {
                 return s.onscreenNotes.filter((note) =>
                     note.playStatus === "pressed" && between(note.musicNote.note.pitch, 0, 32)
@@ -240,7 +236,7 @@ class releaseNoteKey implements Action {
                     && (note.musicNote.note.end - note.musicNote.note.start) >= 1)
             }
             else {
-                return [] as ReadonlyArray<noteStatusItem>
+                return [] as ReadonlyArray<NoteStatusItem>
             }
         }
 
