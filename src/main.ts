@@ -196,12 +196,14 @@ if (typeof window !== "undefined") {
     Tone.ToneAudioBuffer.loaded().then(() => {
         // Limit the max volume to prevent sampler clipping
         // Clipping is very prevalent in TokyoGhoul and similar due to their (over)use of one instrument
-        const volumeReducer = new Tone.Volume(-7).toDestination();
+        const volumeReducer = new Tone.Volume(-8).toDestination();
 
         for (const instrument in samples) {
             samples[instrument].connect(volumeReducer); // Pipe everything through a master volume controller
             samples[instrument].release = 0.5;
         }
+
+        // Ensure that every song loads (or atleast attempts to) by initiating a JS Promise.
         Promise.all(Constants.SONG_NAME.map(songName =>
             fetch(`${baseUrl}/assets/${songName}.csv`)
                 .then((response) => response.text())
