@@ -109,7 +109,7 @@ function updateView(onFinish: () => void) {
         }
 
         if (multiplier) {
-            multiplier.innerText = s.multiplier.toString();
+            multiplier.innerText = s.multiplier.toString() + "x";
         }
 
         if (highScoreText) {
@@ -159,7 +159,8 @@ function updateView(onFinish: () => void) {
         }
 
         // Play notes that are marked as pressed and have a short duration OR long notes which are within 1 tick of the start time ONLY ONCE
-        s.onscreenNotes.filter((note) => (note.playStatus === "pressed" && note.musicNote.note.end - note.musicNote.note.start < 1) ||
+        s.onscreenNotes.filter((note) => (note.playStatus === "pressed" &&
+                note.musicNote.note.end - note.musicNote.note.start < 1) ||
             (note.playStatus === "pressed" && note.musicNote.note.end - note.musicNote.note.start >= 1
                 && between(s.time - note.musicNote.note.start, 0, Constants.TICK_RATE_MS/1000)))
             .forEach((note) => playNotes(note.musicNote.note)(s.samples, true));

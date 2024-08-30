@@ -88,7 +88,7 @@ class Tick implements Action {
                     createSmallNote({ id: (s.totalNotes + i).toString(), createTime: (s.time + s.lastResetTime) })
                     (calcNoteStartingPos(note)(s.time - s.lastResetTime))(note)(new Vec(0, 175))
                 )
-                .map((body) => ({ playStatus: "ready", musicNote: body })); // Wrap the body with play status "ready"
+                .map((body) => ({ playStatus: "ready", musicNote: body })); // Scheduler assigns "ready"
 
             // Track the number of new short note bodies
             const numberOfNewObjects = newShortNoteBodies.length;
@@ -100,7 +100,8 @@ class Tick implements Action {
                     createLongNote({ id: (s.totalNotes + i + numberOfNewObjects).toString(), createTime: (s.time + s.lastResetTime) })
                     (calcNoteStartingPos(note)(s.time - s.lastResetTime))(note)(new Vec(0, 175))
                 )
-                .map((body) => ({ playStatus: "ready", musicNote: body })); // Wrap the body with play status "ready"
+                .map((body) => ({ playStatus: "ready", musicNote: body })); // Scheduler assigns "ready"
+
 
             // Filter out expired notes based on the current time
             // Explanation for long logic statement: the entity expiredNotes consists of notes
