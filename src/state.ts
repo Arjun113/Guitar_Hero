@@ -9,6 +9,7 @@ import {
 } from "./types.ts";
 import { between, calcNoteStartingPos, cut, except, mod, releaseNotes, Vec } from "./util.ts";
 import { Constants, loadSong } from "./main.ts";
+import { Note } from "tone/build/esm/core/type/NoteUnits";
 
 export {Tick, pressNoteKey, releaseNoteKey, reduceState, switchSong, restartSong}
 
@@ -118,14 +119,9 @@ class Tick implements Action {
                 note.playStatus === "ready" && note.note.start <= (s.time - s.lastResetTime)
             );
 
-            // Function to subtract lists of MusicNotes
-            const cutMusicNotes = except((a: MusicNote) => (b: MusicNote) => a === b);
-
-            // Function to 'subtract' lists of NoteStatusItem
-            const cutAutoNotes = except((a: { playStatus: string, note: MusicNote }) => (b: { playStatus: string, note: MusicNote }) => a === b);
 
             // Filter out user notes that are no longer playable
-            const unplayableUserNotes = cutMusicNotes(s.userNotes)(newUserNotes);
+            const unplayableUserNotes = cut(s.userNotes)(newUserNotes);
 
             // Filter out onscreen notes that are expired or already played
             const unexpiredOnscreenNotes = cut(cut(s.onscreenNotes)(expiredNotes))(playedNotes);
@@ -137,7 +133,7 @@ class Tick implements Action {
             highscore: (s.score > s.highscore) ? s.score : s.highscore,
             expiredNotes: expiredNotes.concat(playedNotes),
             totalNotes: s.totalNotes + newShortNoteBodies.length + newLongNoteBodies.length,
-            automaticNotes: cutAutoNotes(s.automaticNotes)(readyAutomaticNotes).concat(readyAutomaticNotes.map(
+            automaticNotes: cut(s.automaticNotes)(readyAutomaticNotes).concat(readyAutomaticNotes.map(
                 (note) => ({playStatus: "pressed", note: note.note})))
         })
 

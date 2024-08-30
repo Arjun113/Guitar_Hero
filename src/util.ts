@@ -149,12 +149,12 @@ const calcNoteStartingPos = (note: MusicNote) => (time: number): SVGGroup => {
 
 /**
  * Checks if a number is within a specified range.
- * @param x - The number to check
+ * @param x - The thing to check
  * @param min - The minimum value of the range (inclusive)
  * @param max - The maximum value of the range (exclusive)
  * @returns True if x is within the range [min, max), otherwise false
  */
-const between = (x: number, min: number, max: number) => {
+const between = <T>(x: T, min: T, max: T) => {
     return x >= min && x < max;
 }
 
@@ -205,12 +205,12 @@ const releaseNotes = (musicNote: MusicNote) => (samples: { [p: string]: Sampler 
 }
 
 /**
- * Function to exclude noteStatusItems from an array based on their musicNote ID.
- * @param a - The first noteStatusItem
- * @param b - The second noteStatusItem to compare with
- * @returns True if the IDs are the same, otherwise false
+ * Function to exclude generics from an array based on their musicNote ID.
+ * @param a - The first object
+ * @param b - The second object to compare with
+ * @returns True if the objects are the same, otherwise false
  */
-const cut = except((a: NoteStatusItem) => (b: NoteStatusItem) => a.musicNote.id === b.musicNote.id);
+const cut = (except(<T>(a: T) => (b: T) => a === b));
 
 export function createRngStreamFromSource<T>(source$: Observable<T>) {
     return (seed: number = 0): Observable<number> => {
