@@ -7,7 +7,7 @@ import {
     MusicNote,
     NoteStatusItem, SVGGroup, KeyColour, SongSwitchWays,
 } from "./types.ts";
-import { between, calcNoteStartingPos, cut, except, mod, Vec } from "./util.ts";
+import { between, calcNoteStartingPos, cut, except, mod, releaseNotes, Vec } from "./util.ts";
 import { Constants, loadSong } from "./main.ts";
 
 export {Tick, pressNoteKey, releaseNoteKey, reduceState, switchSong, restartSong}
@@ -104,7 +104,7 @@ class Tick implements Action {
             // Filter out expired notes based on the current time
             const expiredNotes = s.onscreenNotes.filter((note) =>
                 ((s.time - s.lastResetTime) > note.musicNote.note.end)
-                || (note.musicNote.note.end - note.musicNote.note.start < 1 && note.playStatus === "played") ||
+                || (note.musicNote.note.end - note.musicNote.note.start < 1 && note.playStatus === "pressed") ||
                 (note.musicNote.note.end - note.musicNote.note.start < 1 && note.playStatus === "released")
             );
 
@@ -247,10 +247,12 @@ class releaseNoteKey implements Action {
         }
 
         const releasedLongNotes = findLongNotesInColumn(this.keyColour);
+        console.log(releasedLongNotes)
         const correctlyReleasedLongNotes = releasedLongNotes.filter((longnote) => between(longnote.musicNote.note.end - (s.time - s.lastResetTime), -0.1, 0.1))
 
         return ({
             ...s, score: s.score + (correctlyReleasedLongNotes.length)*s.multiplier,
+            onscreenNotes: cut(s.onscreenNotes)(releasedLongNotes),
             expiredNotes: releasedLongNotes.map((note) => ({playStatus: "released", musicNote: note.musicNote})),
             simultaneousNotes: (correctlyReleasedLongNotes.length === 0 && s.onscreenNotes.filter((note) =>
                                 note.musicNote.note.end - note.musicNote.note.start >= 1).length !== 0) ? 0 : (s.simultaneousNotes + correctlyReleasedLongNotes.length)

@@ -174,19 +174,27 @@ const between = (x: number, min: number, max: number) => {
  */
 const playNotes = (musicNote: MusicNote) => (samples: { [p: string]: Tone.Sampler }, isTriggeredOrNot: boolean, randomNumber?: number) => {
     if (isTriggeredOrNot) {
-        samples[musicNote.instrument].triggerAttackRelease(
+        samples[musicNote.instrument].triggerAttack(
             Tone.Frequency(musicNote.pitch, "midi").toNote(),
-            (musicNote.end - musicNote.start),
             undefined,
             musicNote.velocity / 127
         );
+        setTimeout(() => {
+            samples[musicNote.instrument].triggerRelease(
+                Tone.Frequency(musicNote.pitch, "midi").toNote(), // Convert MIDI note to frequency
+            );
+        }, (musicNote.end - musicNote.start) * 1000);
     } else if (!isTriggeredOrNot && randomNumber !== undefined) {
-        samples[musicNote.instrument].triggerAttackRelease(
-            Tone.Frequency(randomNumber, "midi").toNote(),
-            randomNumber,
+        samples[musicNote.instrument].triggerAttack(
+            Tone.Frequency(musicNote.pitch, "midi").toNote(),
             undefined,
             musicNote.velocity / 127
         );
+        setTimeout(() => {
+            samples[musicNote.instrument].triggerRelease(
+                Tone.Frequency(musicNote.pitch, "midi").toNote(), // Convert MIDI note to frequency
+            );
+        }, randomNumber * 1000);
     }
 }
 
@@ -197,7 +205,8 @@ const playNotes = (musicNote: MusicNote) => (samples: { [p: string]: Tone.Sample
  */
 const releaseNotes = (musicNote: MusicNote) => (samples: { [p: string]: Sampler }) => {
     samples[musicNote.instrument].triggerRelease(
-        Tone.Frequency(musicNote.pitch, "midi").toNote()
+        Tone.Frequency(musicNote.pitch, "midi").toNote(),
+        undefined
     );
 }
 

@@ -38,6 +38,7 @@ const hide = (elem: SVGGraphicsElement) =>
  */
 function updateView(onFinish: () => void, svg: SVGGraphicsElement & HTMLElement) {
     return function(s: State) {
+        //console.log(s.onscreenNotes.filter((note)=>note.musicNote.note.end - note.musicNote.note.start >= 1))
         // Get references to text fields for displaying game data
         const svg = document.querySelector("#svgCanvas") as SVGGraphicsElement & HTMLElement;
         const gameover = document.querySelector("#gameOver") as SVGGraphicsElement & HTMLElement;
@@ -176,11 +177,12 @@ function updateView(onFinish: () => void, svg: SVGGraphicsElement & HTMLElement)
 
         // Play notes that are marked as pressed and have a short duration OR long notes which are within 1 tick of the start time ONLY ONCE
         s.onscreenNotes.filter((note) => (note.playStatus === "pressed" && note.musicNote.note.end - note.musicNote.note.start < 1) ||
-            (note.playStatus === "pressed" && note.musicNote.note.end - note.musicNote.note.start >= 1 && between(s.time - note.musicNote.note.start, 0, Constants.TICK_RATE_MS/1000)))
+            (note.playStatus === "pressed" && note.musicNote.note.end - note.musicNote.note.start >= 1
+                && between(s.time - note.musicNote.note.start, 0, Constants.TICK_RATE_MS/1000)))
             .forEach((note) => playNotes(note.musicNote.note)(s.samples, true));
 
         // Release notes that are marked as released
-        s.onscreenNotes.filter((note) => note.playStatus === "released")
+        s.expiredNotes.filter((note) => note.playStatus === "released")
             .forEach((note) => releaseNotes(note.musicNote.note)(s.samples));
 
         // Remove expired notes from the canvas

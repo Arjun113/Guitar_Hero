@@ -13,7 +13,7 @@ import {
     interval,
     merge,
     Observable,
-    Subscription
+    Subscription, tap,
 } from "rxjs";
 import { map, filter, scan } from "rxjs/operators";
 import * as Tone from "tone";
@@ -125,7 +125,7 @@ export function main(csv_contents: string[], samples: { [p: string]: Sampler }) 
         releaseGreenNote$ = key$('keyup', 'KeyH').pipe(map(_ => new releaseNoteKey("green"))),
         releaseBlueNote$ = key$('keyup', 'KeyK').pipe(map(_ => new releaseNoteKey("blue"))),
         switchToLeftSong$ = key$("keydown", 'ArrowLeft').pipe(map(_ => new switchSong("previous", csv_contents))),
-        switchToRightSong$ = key$("keyup", 'ArrowRight').pipe(map(_ => new switchSong("next", csv_contents))),
+        switchToRightSong$ = key$("keydown", 'ArrowRight').pipe(map(_ => new switchSong("next", csv_contents))),
         resetGame$ = key$("keydown", 'Enter').pipe(map(_ => new restartSong(csv_contents)));
 
     // Merge all actions and note additions into a single observable
@@ -194,11 +194,12 @@ if (typeof window !== "undefined") {
     const baseUrl = `${protocol}//${hostname}${port ? `:${port}` : ""}`;
 
     Tone.ToneAudioBuffer.loaded().then(() => {
-        // Limit the max volume to prevent sampler clipping (especially prevalent
-        const volumeReducer = new Tone.Volume(-8).toDestination();
+        // Limit the max volume to prevent sampler clipping
+        // Clipping is very prevalent in TokyoGhoul and similar due to their (over)use of one instrument
+        const volumeReducer = new Tone.Volume(-7).toDestination();
 
         for (const instrument in samples) {
-            samples[instrument].connect(volumeReducer);
+            samples[instrument].connect(volumeReducer); // Pipe everything through a master volume controller
             samples[instrument].release = 0.5;
         }
         Promise.all(Constants.SONG_NAME.map(songName =>
