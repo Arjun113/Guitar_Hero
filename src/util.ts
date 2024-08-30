@@ -10,6 +10,7 @@ export { Vec, attr, calcNoteStartingPos, except, isNotNullOrUndefined, not, betw
 /**
  * A random number generator (RNG) using a Linear Congruential Generator (LCG) algorithm.
  * Provides functions to generate and scale random numbers.
+ * Credit: FIT2102 Teaching Team
  */
 abstract class RNG {
     private static m = 0x80000000; // 2^31, modulus value for the LCG
@@ -33,6 +34,7 @@ abstract class RNG {
 
 /**
  * A simple immutable vector class representing a 2D point or vector.
+ * Credit: FIT2102 Teaching Team
  */
 class Vec {
     constructor(public readonly x: number = 0, public readonly y: number = 0) {}
@@ -44,12 +46,6 @@ class Vec {
      */
     add = (b: Vec) => new Vec(this.x + b.x, this.y + b.y);
 
-    /**
-     * Subtracts another vector from this vector.
-     * @param b - The vector to subtract
-     * @returns A new vector representing the difference
-     */
-    sub = (b: Vec) => this.add(b.scale(-1));
 
     /**
      * Scales this vector by a given factor.
@@ -57,9 +53,6 @@ class Vec {
      * @returns A new vector scaled by the factor
      */
     scale = (s: number) => new Vec(this.x * s, this.y * s);
-
-    // A zero vector (0, 0)
-    static Zero = new Vec();
 }
 
 /**
@@ -184,6 +177,7 @@ const playNotes = (musicNote: MusicNote) => (samples: { [p: string]: Tone.Sample
                 Tone.Frequency(musicNote.pitch, "midi").toNote(), // Convert MIDI note to frequency
             );
         }, (musicNote.end - musicNote.start) * 1000);
+
     } else if (!isTriggeredOrNot && randomNumber !== undefined) {
         samples[musicNote.instrument].triggerAttack(
             Tone.Frequency(musicNote.pitch, "midi").toNote(),
