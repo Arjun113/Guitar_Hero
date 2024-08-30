@@ -11,6 +11,7 @@ import {
 } from "./util.ts";
 import * as Tone from "tone";
 import {take} from "rxjs";
+import { Constants } from "./main.ts";
 export { updateView }
 
 /**
@@ -37,7 +38,6 @@ const hide = (elem: SVGGraphicsElement) =>
  */
 function updateView(onFinish: () => void, svg: SVGGraphicsElement & HTMLElement) {
     return function(s: State) {
-
         // Get references to text fields for displaying game data
         const gameover = document.querySelector("#gameOver") as SVGGraphicsElement & HTMLElement;
         const multiplier = document.querySelector("#multiplierText") as HTMLElement;

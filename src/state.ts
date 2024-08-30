@@ -7,7 +7,7 @@ import {
     MusicNote,
     NoteStatusItem, SVGGroup, KeyColour, SongSwitchWays,
 } from "./types.ts";
-import { between, calcNoteStartingPos, cut, except, Vec } from "./util.ts";
+import { between, calcNoteStartingPos, cut, except, mod, Vec } from "./util.ts";
 import { Constants, loadSong } from "./main.ts";
 
 export {Tick, pressNoteKey, releaseNoteKey, reduceState, switchSong, restartSong}
@@ -271,22 +271,22 @@ class switchSong implements Action {
         score: 0,
         highscore: s.highscore,
         time: 0,
-        userNotes: loadSong(((this.switchDirection === "next" ? (s.currentSongIndex + 1) % Constants.SONG_NAME.length
-            : (s.currentSongIndex - 1) % Constants.SONG_NAME.length)), this.csvContents).filter((note) => note.userPlayed),
+        userNotes: loadSong(((this.switchDirection === "next" ? mod(s.currentSongIndex + 1)(Constants.SONG_NAME.length)
+            : mod(s.currentSongIndex - 1)(Constants.SONG_NAME.length))), this.csvContents).filter((note) => note.userPlayed),
         keyPressed: "",
         keyReleased: "",
         onscreenNotes: [],
         expiredNotes: [],
-        automaticNotes: loadSong(((this.switchDirection === "next" ? (s.currentSongIndex + 1) % Constants.SONG_NAME.length
-            : (s.currentSongIndex - 1) % Constants.SONG_NAME.length)), this.csvContents).filter((note) =>
+        automaticNotes: loadSong(((this.switchDirection === "next" ? mod(s.currentSongIndex + 1)(Constants.SONG_NAME.length)
+            : mod(s.currentSongIndex - 1)(Constants.SONG_NAME.length))), this.csvContents).filter((note) =>
             !note.userPlayed).map((note) => ({playStatus: "ready", note: note})),
         notesPlayed: 0,
         notesMissed: 0,
         totalNotes: 0,
         simultaneousNotes: 0,
         lastResetTime: s.time + 2,
-        currentSongIndex: this.switchDirection === "next" ? (s.currentSongIndex + 1) % Constants.SONG_NAME.length
-            : (s.currentSongIndex - 1) % Constants.SONG_NAME.length,
+        currentSongIndex: this.switchDirection === "next" ? mod(s.currentSongIndex + 1)(Constants.SONG_NAME.length)
+            : mod(s.currentSongIndex - 1)(Constants.SONG_NAME.length),
         resetCanvas: true
     })
 }

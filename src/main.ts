@@ -34,7 +34,7 @@ const Viewport = {
 
 const Constants = {
     TICK_RATE_MS: 10, // Interval between ticks in milliseconds
-    SONG_NAME: ["RockinRobin", "IWonder"], // List of available song names
+    SONG_NAME: ["RockinRobin", "IWonder", "TokyoGhoulOP3"], // List of available song names
     STARTING_SONG_INDEX: 1 // Index of the song to start with
 } as const;
 
