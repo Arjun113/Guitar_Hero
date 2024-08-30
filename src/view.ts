@@ -3,7 +3,7 @@ import { State, Body, KeyColour, NoteStatusItem } from "./types.ts";
 import {
     attr,
     between,
-    isNotNullOrUndefined,
+    isNotNullOrUndefined, mod,
     noteViewTypes,
     playNotes,
     releaseNotes,
@@ -39,6 +39,7 @@ const hide = (elem: SVGGraphicsElement) =>
 function updateView(onFinish: () => void, svg: SVGGraphicsElement & HTMLElement) {
     return function(s: State) {
         // Get references to text fields for displaying game data
+        const svg = document.querySelector("#svgCanvas") as SVGGraphicsElement & HTMLElement;
         const gameover = document.querySelector("#gameOver") as SVGGraphicsElement & HTMLElement;
         const multiplier = document.querySelector("#multiplierText") as HTMLElement;
         const scoreText = document.querySelector("#scoreText") as HTMLElement;
@@ -145,13 +146,13 @@ function updateView(onFinish: () => void, svg: SVGGraphicsElement & HTMLElement)
             const getNearestNote = (s: State) => (keyColour: KeyColour): ReadonlyArray<NoteStatusItem> => {
                 switch (keyColour) {
                     case "green":
-                        return s.onscreenNotes.filter((note) => between(note.musicNote.note.pitch, 0, 32));
+                        return s.onscreenNotes.filter((note) => mod(note.musicNote.note.pitch)(4) == 0);
                     case "red":
-                        return s.onscreenNotes.filter((note) => between(note.musicNote.note.pitch, 32, 64));
+                        return s.onscreenNotes.filter((note) => mod(note.musicNote.note.pitch)(4) == 1);
                     case "yellow":
-                        return s.onscreenNotes.filter((note) => between(note.musicNote.note.pitch, 96, 128));
+                        return s.onscreenNotes.filter((note) => mod(note.musicNote.note.pitch)(4) == 3);
                     case "blue":
-                        return s.onscreenNotes.filter((note) => between(note.musicNote.note.pitch, 64, 96));
+                        return s.onscreenNotes.filter((note) => mod(note.musicNote.note.pitch)(4) == 2);
                     default:
                         return [] as ReadonlyArray<NoteStatusItem>;
                 }
@@ -175,7 +176,7 @@ function updateView(onFinish: () => void, svg: SVGGraphicsElement & HTMLElement)
 
         // Play notes that are marked as pressed and have a short duration OR long notes which are within 1 tick of the start time ONLY ONCE
         s.onscreenNotes.filter((note) => (note.playStatus === "pressed" && note.musicNote.note.end - note.musicNote.note.start < 1) ||
-            (note.playStatus === "pressed" && note.musicNote.note.end - note.musicNote.note.start >= 1 && between(s.time - note.musicNote.note.start, 0, 0.01)))
+            (note.playStatus === "pressed" && note.musicNote.note.end - note.musicNote.note.start >= 1 && between(s.time - note.musicNote.note.start, 0, Constants.TICK_RATE_MS/1000)))
             .forEach((note) => playNotes(note.musicNote.note)(s.samples, true));
 
         // Release notes that are marked as released

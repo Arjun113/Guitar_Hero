@@ -34,7 +34,7 @@ const Viewport = {
 
 const Constants = {
     TICK_RATE_MS: 10, // Interval between ticks in milliseconds
-    SONG_NAME: ["RockinRobin", "IWonder", "TokyoGhoulOP3"], // List of available song names
+    SONG_NAME: ["RockinRobin", "TokyoGhoulOP3", "IWonder"], // List of available song names
     STARTING_SONG_INDEX: 1 // Index of the song to start with
 } as const;
 
@@ -73,7 +73,6 @@ const loadSong = (songIndex: number, csvContents: string[]): MusicNote[] => {
  */
 export function main(csv_contents: string[], samples: { [p: string]: Sampler }) {
     const svg = document.querySelector("#svgCanvas") as SVGGraphicsElement & HTMLElement;
-    const preview = document.querySelector("#svgPreview") as SVGGraphicsElement & HTMLElement;
 
     // Observable for keyboard events filtered by specific keys and prevent repetition (since we use keydown and not keypress)
     const key$ = (e: Event, k: Key) =>
@@ -195,8 +194,11 @@ if (typeof window !== "undefined") {
     const baseUrl = `${protocol}//${hostname}${port ? `:${port}` : ""}`;
 
     Tone.ToneAudioBuffer.loaded().then(() => {
+        // Limit the max volume to prevent sampler clipping (especially prevalent
+        const volumeReducer = new Tone.Volume(-8).toDestination();
+
         for (const instrument in samples) {
-            samples[instrument].toDestination();
+            samples[instrument].connect(volumeReducer);
             samples[instrument].release = 0.5;
         }
         Promise.all(Constants.SONG_NAME.map(songName =>

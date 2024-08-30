@@ -103,7 +103,9 @@ class Tick implements Action {
 
             // Filter out expired notes based on the current time
             const expiredNotes = s.onscreenNotes.filter((note) =>
-                (s.time - s.lastResetTime) > note.musicNote.note.end
+                ((s.time - s.lastResetTime) > note.musicNote.note.end)
+                || (note.musicNote.note.end - note.musicNote.note.start < 1 && note.playStatus === "played") ||
+                (note.musicNote.note.end - note.musicNote.note.start < 1 && note.playStatus === "released")
             );
 
             // Filter notes that are already played or released
@@ -164,31 +166,35 @@ class pressNoteKey implements Action {
          */
         function findNotesInColumn (keyColour: KeyColour): ReadonlyArray<NoteStatusItem> {
             if (keyColour === "green") {
-                return s.onscreenNotes.filter((note) => between(note.musicNote.note.pitch, 0, 32))
+                return s.onscreenNotes.filter((note) => mod(note.musicNote.note.pitch)(4) == 0)
             }
             else if (keyColour === "red") {
-                return s.onscreenNotes.filter((note) => between(note.musicNote.note.pitch, 32, 64))
+                return s.onscreenNotes.filter((note) => mod(note.musicNote.note.pitch)(4) == 1)
             }
             else if (keyColour === "yellow") {
-                return s.onscreenNotes.filter((note) => between(note.musicNote.note.pitch, 96, 128))
+                return s.onscreenNotes.filter((note) => mod(note.musicNote.note.pitch)(4) == 3)
             }
             else if (keyColour === "blue") {
-                return s.onscreenNotes.filter((note) => between(note.musicNote.note.pitch, 64, 96))
+                return s.onscreenNotes.filter((note) => mod(note.musicNote.note.pitch)(4) == 2)
             }
             return [] as ReadonlyArray<NoteStatusItem>
         }
 
         const notesInColumn = findNotesInColumn(this.keyColour);
-        const playableNotesInColumn = notesInColumn.filter((note) => between(note.musicNote.note.start - (s.time - s.lastResetTime), -0.2, 0.2))
+        const playableNotesInColumn = notesInColumn.filter((note) =>
+            between(note.musicNote.note.start - (s.time - s.lastResetTime), -0.2, 0.2))
         const unplayableNotesInColumn = cut(s.onscreenNotes)(playableNotesInColumn)
 
 
         return ({
             ...s,
-            onscreenNotes: unplayableNotesInColumn.concat(playableNotesInColumn.map((note) => ({playStatus: "pressed", musicNote: note.musicNote}))),
+            onscreenNotes: unplayableNotesInColumn.concat(playableNotesInColumn.map((note) =>
+                ({playStatus: "pressed", musicNote: note.musicNote}))),
             keyPressed: (playableNotesInColumn.length === 0 ? (notesInColumn.length === 0 ? "random" : this.keyColour) : ""),
-            notesPlayed: s.notesPlayed + playableNotesInColumn.filter((note) => (note.musicNote.note.end - note.musicNote.note.start) < 1).length,
-            score: s.score + (playableNotesInColumn.filter((note) => (note.musicNote.note.end - note.musicNote.note.start) < 1).length)*s.multiplier,
+            notesPlayed: s.notesPlayed + playableNotesInColumn.filter((note) =>
+                (note.musicNote.note.end - note.musicNote.note.start) < 1).length,
+            score: s.score + (playableNotesInColumn.filter((note) =>
+                (note.musicNote.note.end - note.musicNote.note.start) < 1).length)*s.multiplier,
             simultaneousNotes: playableNotesInColumn.length === 0 ? 0 : (s.simultaneousNotes + playableNotesInColumn.length)
         })
     }
@@ -217,22 +223,22 @@ class releaseNoteKey implements Action {
         function findLongNotesInColumn (keyColour: KeyColour): ReadonlyArray<NoteStatusItem> {
             if (keyColour === "green") {
                 return s.onscreenNotes.filter((note) =>
-                    note.playStatus === "pressed" && between(note.musicNote.note.pitch, 0, 32)
+                    note.playStatus === "pressed" && mod(note.musicNote.note.pitch)(4) == 0
                     && (note.musicNote.note.end - note.musicNote.note.start) >= 1)
             }
             else if (keyColour === "red") {
                 return s.onscreenNotes.filter((note) =>
-                    note.playStatus === "pressed" && between(note.musicNote.note.pitch, 32, 64)
+                    note.playStatus === "pressed" && mod(note.musicNote.note.pitch)(4) == 1
                     && (note.musicNote.note.end - note.musicNote.note.start) >= 1)
             }
             else if (keyColour === "yellow") {
                 return s.onscreenNotes.filter((note) =>
-                    note.playStatus === "pressed" && between(note.musicNote.note.pitch, 96, 128)
+                    note.playStatus === "pressed" && mod(note.musicNote.note.pitch)(4) == 3
                     && (note.musicNote.note.end - note.musicNote.note.start) >= 1)
             }
             else if (keyColour === "blue") {
                 return s.onscreenNotes.filter((note) =>
-                    note.playStatus === "pressed" && between(note.musicNote.note.pitch, 64, 96)
+                    note.playStatus === "pressed" && mod(note.musicNote.note.pitch)(4) == 2
                     && (note.musicNote.note.end - note.musicNote.note.start) >= 1)
             }
             else {

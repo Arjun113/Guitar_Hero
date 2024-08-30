@@ -116,11 +116,11 @@ const calcNoteStartingPos = (note: MusicNote) => (time: number): SVGGroup => {
      * @returns A tuple with color and position percentage
      */
     function calcPercentage(note: MusicNote): ColourPos {
-        if (note.pitch < 32 && note.pitch >= 0) {
+        if (mod(note.pitch)(4) == 0) {
             return ["green", 0.2];
-        } else if (note.pitch < 64 && note.pitch >= 32) {
+        } else if (mod(note.pitch)(4) == 1) {
             return ["red", 0.4];
-        } else if (note.pitch < 96 && note.pitch >= 64) {
+        } else if (mod(note.pitch)(4) == 2) {
             return ["blue", 0.6];
         } else {
             return ["yellow", 0.8];
