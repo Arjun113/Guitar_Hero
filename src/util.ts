@@ -1,11 +1,11 @@
-import { ColourPos, MusicNote, NoteStatusItem, SVGGroup} from "./types.ts";
-import { Constants, Note, Viewport } from "./main.ts";
+import { ColourPos, KeyColour, MusicNote, SVGGroup } from "./types.ts";
+import { Note, Viewport } from "./main.ts";
 import * as Tone from "tone";
 import { Sampler } from "tone";
 import { interval, Observable, Subject, zip} from "rxjs";
 import { map, scan } from "rxjs/operators";
 export { Vec, attr, calcNoteStartingPos, except, isNotNullOrUndefined, not, between, RNG, playNotes, releaseNotes, cut,
-    threeRNGStream$, threeRNGSubject$, noteViewTypes, mod }
+    threeRNGStream$, threeRNGSubject$, noteViewTypes, mod, filterForColour }
 
 /**
  * A random number generator (RNG) using a Linear Congruential Generator (LCG) algorithm.
@@ -245,3 +245,18 @@ const noteViewTypes = [
  * @returns Modulo of m and n
  */
 const mod = (m: number) => (n: number) => ((m % n) + n) % n;
+
+/**
+ * A helper function to filter for colour
+ * @param note A note to filter out
+ * @param keyColour Colour of key pressed
+ */
+const filterForColour = (note: MusicNote, keyColour: KeyColour) => {
+    switch (keyColour) {
+        case "green": return mod(note.pitch)(4) === 0
+        case "red": return mod(note.pitch)(4) === 1
+        case "blue": return mod(note.pitch)(4) === 2
+        case "yellow": return mod(note.pitch)(4) === 3
+        default: return false
+    }
+};

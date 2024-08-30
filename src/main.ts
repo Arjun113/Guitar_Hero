@@ -72,7 +72,6 @@ const loadSong = (songIndex: number, csvContents: string[]): MusicNote[] => {
  * @param samples - Object containing the loaded audio samples
  */
 export function main(csv_contents: string[], samples: { [p: string]: Sampler }) {
-    const svg = document.querySelector("#svgCanvas") as SVGGraphicsElement & HTMLElement;
 
     // Observable for keyboard events filtered by specific keys and prevent repetition (since we use keydown and not keypress)
     const key$ = (e: Event, k: Key) =>
@@ -138,7 +137,7 @@ export function main(csv_contents: string[], samples: { [p: string]: Sampler }) 
     );
 
     // Subscribe to state changes and update the view
-    const subscription: Subscription = state$.subscribe(updateView(() => subscription.unsubscribe(), svg));
+    const subscription: Subscription = state$.subscribe(updateView(() => subscription.unsubscribe()));
 }
 
 /**

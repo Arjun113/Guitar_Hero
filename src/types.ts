@@ -14,7 +14,7 @@ type Event = "keydown" | "keyup" | "keypress";
 
 
 /** Represents the color associated with a key. */
-type KeyColour = "green" | "red" | "blue" | "yellow" | "";
+type KeyColour = "green" | "red" | "blue" | "yellow" | "" | "random";
 
 /** Represents the directions in which the song can be switched. */
 type SongSwitchWays = "previous" | "next"

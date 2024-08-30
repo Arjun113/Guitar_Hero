@@ -7,9 +7,8 @@ import {
     MusicNote,
     NoteStatusItem, SVGGroup, KeyColour, SongSwitchWays,
 } from "./types.ts";
-import { between, calcNoteStartingPos, cut, except, mod, releaseNotes, Vec } from "./util.ts";
+import { between, calcNoteStartingPos, cut, except, filterForColour, mod, Vec } from "./util.ts";
 import { Constants, loadSong } from "./main.ts";
-import { Note } from "tone/build/esm/core/type/NoteUnits";
 
 export {Tick, pressNoteKey, releaseNoteKey, reduceState, switchSong, restartSong}
 
@@ -48,7 +47,8 @@ class Tick implements Action {
      * @returns The updated state
      */
     apply = (s: State): State => Tick.noteManagement({
-        ...s, onscreenNotes: s.onscreenNotes.map((note) => ({playStatus: note.playStatus, musicNote:Tick.moveBody(note.musicNote)})),
+        ...s, onscreenNotes: s.onscreenNotes.map((note) =>
+            ({playStatus: note.playStatus, musicNote:Tick.moveBody(note.musicNote)})),
         expiredNotes: [], gameEnd: (s.automaticNotes.length === 1 && s.userNotes.length === 0 && s.onscreenNotes.length === 0),
         keyPressed: "", keyReleased: "",
         time: this.timeElapsed - 2,
@@ -103,18 +103,25 @@ class Tick implements Action {
                 .map((body) => ({ playStatus: "ready", musicNote: body })); // Wrap the body with play status "ready"
 
             // Filter out expired notes based on the current time
+            // Explanation for long logic statement: the entity expiredNotes consists of notes
+            // who fit in atleast one of three categories:
+            // 1. Notes whose ending time has surpassed the current time in state
+            // 2. Short notes which have been played
+            // 3. Long notes which have been released.
+            // This entry is for View to get rid of all these from the HTML page
             const expiredNotes = s.onscreenNotes.filter((note) =>
                 ((s.time - s.lastResetTime) > note.musicNote.note.end)
                 || (note.musicNote.note.end - note.musicNote.note.start < 1 && note.playStatus === "pressed") ||
                 (note.musicNote.note.end - note.musicNote.note.start < 1 && note.playStatus === "released")
             );
 
-            // Filter notes that are already played or released
+            // Get notes that are already played or released
             const playedNotes = s.onscreenNotes.filter((note) =>
                 (((note.musicNote.note.end - note.musicNote.note.start) < 1 && note.playStatus === "pressed") || note.playStatus === "released")
             );
 
-            // Filter notes that are ready to be played automatically
+            // Get notes that are ready to be played automatically
+            // In this context, automatically means that they are not shown to user
             const readyAutomaticNotes = s.automaticNotes.filter((note) =>
                 note.playStatus === "ready" && note.note.start <= (s.time - s.lastResetTime)
             );
@@ -128,13 +135,16 @@ class Tick implements Action {
 
 
             return ({
-            ...s, onscreenNotes: unexpiredOnscreenNotes.concat(newShortNoteBodies, newLongNoteBodies), userNotes: unplayableUserNotes,
-            notesMissed: s.notesMissed + expiredNotes.filter((note) => note.playStatus === "ready").length,
+            ...s, onscreenNotes: unexpiredOnscreenNotes.concat(newShortNoteBodies, newLongNoteBodies),
+                userNotes: unplayableUserNotes,
+            notesMissed: s.notesMissed + expiredNotes.filter((note) =>
+                note.playStatus === "ready").length,
             highscore: (s.score > s.highscore) ? s.score : s.highscore,
             expiredNotes: expiredNotes.concat(playedNotes),
             totalNotes: s.totalNotes + newShortNoteBodies.length + newLongNoteBodies.length,
             automaticNotes: cut(s.automaticNotes)(readyAutomaticNotes).concat(readyAutomaticNotes.map(
-                (note) => ({playStatus: "pressed", note: note.note})))
+                (note) =>
+                    ({playStatus: "pressed", note: note.note})))
         })
 
 
@@ -155,28 +165,8 @@ class pressNoteKey implements Action {
      */
     apply = (s: State): State => {
 
-        /**
-         * Finds notes in the column associated with the given key color.
-         * @param keyColour - The key color
-         * @returns An array of noteStatusItems in the column
-         */
-        function findNotesInColumn (keyColour: KeyColour): ReadonlyArray<NoteStatusItem> {
-            if (keyColour === "green") {
-                return s.onscreenNotes.filter((note) => mod(note.musicNote.note.pitch)(4) == 0)
-            }
-            else if (keyColour === "red") {
-                return s.onscreenNotes.filter((note) => mod(note.musicNote.note.pitch)(4) == 1)
-            }
-            else if (keyColour === "yellow") {
-                return s.onscreenNotes.filter((note) => mod(note.musicNote.note.pitch)(4) == 3)
-            }
-            else if (keyColour === "blue") {
-                return s.onscreenNotes.filter((note) => mod(note.musicNote.note.pitch)(4) == 2)
-            }
-            return [] as ReadonlyArray<NoteStatusItem>
-        }
-
-        const notesInColumn = findNotesInColumn(this.keyColour);
+        const notesInColumn = s.onscreenNotes.filter((note)=>
+            filterForColour(note.musicNote.note, this.keyColour));
         const playableNotesInColumn = notesInColumn.filter((note) =>
             between(note.musicNote.note.start - (s.time - s.lastResetTime), -0.1, 0.1))
         const unplayableNotesInColumn = cut(s.onscreenNotes)(playableNotesInColumn)
@@ -211,47 +201,25 @@ class releaseNoteKey implements Action {
      */
     apply = (s: State): State => {
 
-        /**
-         * Finds long notes in the column associated with the given key color that are currently pressed.
-         * @param keyColour - The key color
-         * @returns An array of noteStatusItems for long notes
-         */
-        function findLongNotesInColumn (keyColour: KeyColour): ReadonlyArray<NoteStatusItem> {
-            if (keyColour === "green") {
-                return s.onscreenNotes.filter((note) =>
-                    note.playStatus === "pressed" && mod(note.musicNote.note.pitch)(4) == 0
-                    && (note.musicNote.note.end - note.musicNote.note.start) >= 1)
-            }
-            else if (keyColour === "red") {
-                return s.onscreenNotes.filter((note) =>
-                    note.playStatus === "pressed" && mod(note.musicNote.note.pitch)(4) == 1
-                    && (note.musicNote.note.end - note.musicNote.note.start) >= 1)
-            }
-            else if (keyColour === "yellow") {
-                return s.onscreenNotes.filter((note) =>
-                    note.playStatus === "pressed" && mod(note.musicNote.note.pitch)(4) == 3
-                    && (note.musicNote.note.end - note.musicNote.note.start) >= 1)
-            }
-            else if (keyColour === "blue") {
-                return s.onscreenNotes.filter((note) =>
-                    note.playStatus === "pressed" && mod(note.musicNote.note.pitch)(4) == 2
-                    && (note.musicNote.note.end - note.musicNote.note.start) >= 1)
-            }
-            else {
-                return [] as ReadonlyArray<NoteStatusItem>
-            }
-        }
+        // The condition to filter out long notes that have been pressed (played)
+        const longNotes = (note: NoteStatusItem) => note.playStatus === "pressed" &&
+        (note.musicNote.note.end - note.musicNote.note.start) >= 1;
 
-        const releasedLongNotes = findLongNotesInColumn(this.keyColour);
-        console.log(releasedLongNotes)
-        const correctlyReleasedLongNotes = releasedLongNotes.filter((longnote) => between(longnote.musicNote.note.end - (s.time - s.lastResetTime), -0.1, 0.1))
+
+        const releasedLongNotes = s.onscreenNotes.filter((note) =>
+                                filterForColour(note.musicNote.note, this.keyColour)).filter(longNotes);
+        const correctlyReleasedLongNotes = releasedLongNotes.filter((longnote) =>
+            between(longnote.musicNote.note.end - (s.time - s.lastResetTime), -0.1, 0.1))
 
         return ({
             ...s, score: s.score + (correctlyReleasedLongNotes.length)*s.multiplier,
             onscreenNotes: cut(s.onscreenNotes)(releasedLongNotes),
-            expiredNotes: releasedLongNotes.map((note) => ({playStatus: "released", musicNote: note.musicNote})),
-            simultaneousNotes: (correctlyReleasedLongNotes.length === 0 && s.onscreenNotes.filter((note) =>
-                                note.musicNote.note.end - note.musicNote.note.start >= 1).length !== 0) ? 0 : (s.simultaneousNotes + correctlyReleasedLongNotes.length)
+            expiredNotes: releasedLongNotes.map((note) =>
+                ({playStatus: "released", musicNote: note.musicNote})),
+            simultaneousNotes: (correctlyReleasedLongNotes.length === 0 &&
+                s.onscreenNotes.filter((note) =>
+                                note.musicNote.note.end - note.musicNote.note.start >= 1).length !== 0) ? 0
+                                : (s.simultaneousNotes + correctlyReleasedLongNotes.length)
         })
 
     }
@@ -330,4 +298,10 @@ class restartSong implements Action {
     })
 }
 
+/**
+ * The place where the magic happens: the state transducer!
+ * @param action - The Action to apply to the State
+ * @param state - The state to apply the Action
+ * @returns A new copy of the updated state after applying the Action on to it
+ */
 const reduceState = (action: Action, state: State) => action.apply(state);

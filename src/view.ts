@@ -2,7 +2,7 @@
 import { State, Body, KeyColour, NoteStatusItem } from "./types.ts";
 import {
     attr,
-    between,
+    between, filterForColour,
     isNotNullOrUndefined, mod,
     noteViewTypes,
     playNotes,
@@ -36,9 +36,8 @@ const hide = (elem: SVGGraphicsElement) =>
  * @param svg - The SVG element to update
  * @returns A function that takes the current game state and updates the view accordingly
  */
-function updateView(onFinish: () => void, svg: SVGGraphicsElement & HTMLElement) {
+function updateView(onFinish: () => void) {
     return function(s: State) {
-        //console.log(s.onscreenNotes.filter((note)=>note.musicNote.note.end - note.musicNote.note.start >= 1))
         // Get references to text fields for displaying game data
         const svg = document.querySelector("#svgCanvas") as SVGGraphicsElement & HTMLElement;
         const gameover = document.querySelector("#gameOver") as SVGGraphicsElement & HTMLElement;
@@ -137,34 +136,18 @@ function updateView(onFinish: () => void, svg: SVGGraphicsElement & HTMLElement)
                     randomNum[2]
                 )
             );
-        } else if (s.keyPressed !== "") {
-            /**
-             * Gets the nearest note on screen for a given key color.
-             * @param s - The current game state
-             * @param keyColour - The key color to match
-             * @returns An array of noteStatusItem objects that match the key color
-             */
-            const getNearestNote = (s: State) => (keyColour: KeyColour): ReadonlyArray<NoteStatusItem> => {
-                switch (keyColour) {
-                    case "green":
-                        return s.onscreenNotes.filter((note) => mod(note.musicNote.note.pitch)(4) == 0);
-                    case "red":
-                        return s.onscreenNotes.filter((note) => mod(note.musicNote.note.pitch)(4) == 1);
-                    case "yellow":
-                        return s.onscreenNotes.filter((note) => mod(note.musicNote.note.pitch)(4) == 3);
-                    case "blue":
-                        return s.onscreenNotes.filter((note) => mod(note.musicNote.note.pitch)(4) == 2);
-                    default:
-                        return [] as ReadonlyArray<NoteStatusItem>;
-                }
-            };
+        }
+        else if (s.keyPressed !== "") {
 
-            const nearestNote = getNearestNote(s)(s.keyPressed).reduce(
+            // Get the nearest note from whatever's in the column whose key is pressed
+            const nearestNote = s.onscreenNotes.filter((note) =>
+                                                                filterForColour(note.musicNote.note, s.keyPressed)).reduce(
                 (acc, val) =>
                     (s.time - acc.musicNote.note.start) < (s.time - val.musicNote.note.start) ? val : acc,
-                getNearestNote(s)(s.keyPressed)[0]
-            );
+                s.onscreenNotes.filter((note) =>
+                    filterForColour(note.musicNote.note, s.keyPressed))[0])
 
+            // Play the nearest note for some random time
             threeRNGSubject$.pipe(take(1)).subscribe(
                 (randomNum) => s.samples[nearestNote.musicNote.note.instrument].triggerAttackRelease(
                     Tone.Frequency(nearestNote.musicNote.note.pitch, "midi").toNote(),
@@ -197,6 +180,7 @@ function updateView(onFinish: () => void, svg: SVGGraphicsElement & HTMLElement)
                 }
             });
 
+        // The tails need to go too!
         s.expiredNotes.map(o => document.getElementById(o.musicNote.id + "Tail"))
             .filter(isNotNullOrUndefined)
             .forEach(v => {
