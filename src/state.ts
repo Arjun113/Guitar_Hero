@@ -178,7 +178,7 @@ class pressNoteKey implements Action {
 
         const notesInColumn = findNotesInColumn(this.keyColour);
         const playableNotesInColumn = notesInColumn.filter((note) =>
-            between(note.musicNote.note.start - (s.time - s.lastResetTime), -0.2, 0.2))
+            between(note.musicNote.note.start - (s.time - s.lastResetTime), -0.1, 0.1))
         const unplayableNotesInColumn = cut(s.onscreenNotes)(playableNotesInColumn)
 
 
