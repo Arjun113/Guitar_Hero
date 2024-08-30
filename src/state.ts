@@ -7,7 +7,7 @@ import {
     MusicNote,
     NoteStatusItem, SVGGroup, KeyColour, SongSwitchWays,
 } from "./types.ts";
-import { between, calcNoteStartingPos, cut, except, filterForColour, mod, Vec } from "./util.ts";
+import { between, calcNoteStartingPos, cut, filterForColour, mod, Vec } from "./util.ts";
 import { Constants, loadSong } from "./main.ts";
 
 export {Tick, pressNoteKey, releaseNoteKey, reduceState, switchSong, restartSong}

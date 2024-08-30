@@ -13,7 +13,7 @@ import {
     interval,
     merge,
     Observable,
-    Subscription, tap,
+    Subscription,
 } from "rxjs";
 import { map, filter, scan } from "rxjs/operators";
 import * as Tone from "tone";
